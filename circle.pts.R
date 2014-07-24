@@ -7,6 +7,7 @@
 # is actually a dataframe with at least columns of magnitude and direction.
 # n.b. earth radius is the "ellipsoidal quadratic mean radius of the earth", in m.
 
+
 circle.pts <- function(lonlatpoint, radius) {
      Rearth <- 6372795
      travelvector <- data.frame(cbind(direction = seq(0, 2*pi, by = 2* pi / 100),
