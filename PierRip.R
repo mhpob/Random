@@ -3,7 +3,9 @@
 # 
 # In the future, I'd like to put in start/stop time arguments.
 library(lubridate)
-
+cblpier <- function(start, end){
+  
+}
 xmltree <- readLines('https://stormcentral.waterlog.com/xml/SiteDetailsSiteData.php?Site=1&Acct=88&Start=0&Range=864000000')
 
 datacode <- unlist(strsplit(xmltree[3], '<SiteData>'))[2]
