@@ -2,9 +2,8 @@
 # https://stormcentral.waterlog.com/SiteDetails.php?a=88&site=1&pa=CBLPier
 # between specified dates/times in ymd_hms format
 
-library(lubridate)
-
-cblpier <- function(start = '2014-03-04 00:00:00', end = as.character(Sys.time())){
+cblpier <- function(stdate = '2014-03-04 00:00:00', enddate = as.character(Sys.time())){
+  library(lubridate)
   tounix <- function(x){
     as.numeric(
       ymd_hms(
@@ -12,13 +11,13 @@ cblpier <- function(start = '2014-03-04 00:00:00', end = as.character(Sys.time()
       ))
   }
   
-  start <- tounix(start)
-  end <- tounix(end)
+  stdate <- tounix(stdate)
+  enddate <- tounix(enddate)
   
-  range <- end - start
+  range <- enddate - stdate
   
   url <- paste0('https://stormcentral.waterlog.com/xml/SiteDetailsSiteData.php?',
-                'Site=1&Acct=88&Start=', start, '&Range=', range)
+                'Site=1&Acct=88&Start=', stdate, '&Range=', range)
   
   xmltree <- readLines(url)
   
@@ -29,8 +28,10 @@ cblpier <- function(start = '2014-03-04 00:00:00', end = as.character(Sys.time()
                       skip = 1, header = T, 
                       na.strings = c('NA', '-99.99'), stringsAsFactors = F)
   
-  # Drop short-lived second sonde
-  pierdata <- pierdata[,-(3:8)]
+  # Drop short-lived second sonde if in data
+  if(T %in% grepl('EXO2_2', names(pierdata))) {
+    pierdata <- pierdata[,-(3:8)]
+  }
   
   # Drop empty samples
   pierdata <- pierdata[rowSums(is.na(pierdata)) != 8,]
