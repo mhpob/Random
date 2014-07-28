@@ -23,6 +23,12 @@ pierdata <- pierdata[rowSums(is.na(pierdata)) != 8,]
 # Formatting
 pierdata$Date <- mdy_hms(paste(pierdata$Date, pierdata$Time))
 pierdata <- pierdata[, -2]
+row.names(pierdata) <- NULL
+names(pierdata)[2:9] <- c('Temp', 'SpCond', 'Turb', 'DO_pct',
+                          'DO_con', 'Depth', 'Sal', 'Batt')
+units <- list(Temp = 'Degrees Celsius', SpCond = 'microSeimens/centimeter',
+           Turb = 'Nephelometric Turbidity Units', DO_pct = 'Percent Saturation',
+           DO_con = 'milligrams/Liter', Depth = 'Meters', Sal = '', Batt = 'Volts')
 
 # Using RCurl, XML packages
 # xmltree <- getURL('https://stormcentral.waterlog.com/xml/SiteDetailsSiteData.php?Site=1&Acct=88&Start=0&Range=864000000', ssl.verifypeer = F)
