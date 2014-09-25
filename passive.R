@@ -1,38 +1,32 @@
 library(rgdal); library(maptools); library(ggplot2); library(dplyr)
 
 ## Load shapefiles. Shapefiles downloaded from USGS.
-pam <- readOGR('c:/users/secor lab/downloads/nhd_02080106_pamunkey_hu8',
-               'NHDArea')
-york <- readOGR('c:/users/secor lab/downloads/nhd_02080107_york_hu8','NHDArea')
-ches <- readOGR('c:/users/secor lab/downloads/nhd_02080101_lower_chesapeake_bay_hu8','NHDWaterbody')
+york <- readOGR('p:/obrien/gis/shapefiles', 'YKPKRivs')
 
-## Change feature IDs so that the shapefiles can be bound together
-# (to use rbind, there can not be duplicate IDs)
-# IDs are usually "0" to (length of the shapefile) - 1
-# View say, the first ID using something like: pam@polygons[[1]]@ID
-# Also, the Chesapeake shapefile must adjusted so the columns are the same.
-pam <- spChFIDs(pam, paste0('pk', row.names(pam)))
-york <- spChFIDs(york, paste0('yk', row.names(york)))
-ches <- spChFIDs(ches, paste0('cb', row.names(ches)))
-ches <- ches[,c(12,6,7,3,2,1,4,5,9,10,11)]
-
-all.yk <- rbind(pam, york)
-all.yk <- rbind(all.yk, ches)
+york@data$ID <- ifelse(york@data$FTYPE %in% c(364, 460), 'pk', 'yk')
+york <- spChFIDs(york, paste0(york@data$ID, row.names(york)))
 
 ## fortify() to turn the object into a data frame suitable for 
 # plotting with ggplot2
-yk.df <- fortify(all.yk)
+yk.df <- fortify(york)
 
 ## filter() out the points I don't want to have plotted.
-yk.df <- filter(yk.df, long <= -76.3, long >= -77.2,
-               lat <= 37.7, lat >= 37.18)
-yk.df <- filter(yk.df, !(long >=-76.5 & lat >= 37.268))
+yk.plot <- filter(yk.df, grepl('yk', group))
+pk.plot <- filter(yk.df, grepl('pk', group))
 
-# ggplot(data = yk.df, aes(long, lat, group = group)) + geom_polygon(fill = NA) +
-#   geom_path(color = 'black')
-
+## Detection data
 pass.dat <- read.csv('p:/obrien/biotelemetry/csi/listening/activedata.csv',
                      header = T, stringsAsFactors = F)
+pk.dat <- filter(pass.dat, grepl('PK', Site.ID))
+yk.dat <- filter(pass.dat, grepl('YK', Site.ID))
+
+ggplot()+geom_path(data=pk.plot, aes(x=long, y=lat, group=group))+
+  geom_point(data=yk.dat, aes(DD.Long,DD.Lat))
+
+
+
+
+
 pass.dat$Detections <- factor(pass.dat$Detections)
 
 
