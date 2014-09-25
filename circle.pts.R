@@ -3,30 +3,31 @@
 
 # Computes the place where you end up, if you travel a certain distance along
 # a great circle, which is uniquely defined by a point (your starting point)
-# and an angle with the meridian at that point (your direction). The travelvector
-# is actually a dataframe with at least columns of magnitude and direction.
-# n.b. earth radius is the "ellipsoidal quadratic mean radius of the earth", in m.
-
+# and an angle with the meridian at that point (your direction).
+# 
+# lonlatpoint is a set of longitude and latitude pairs (decimal degrees)
+# radius is the radius of desired circle, in m.
+# Rearth is the "ellipsoidal quadratic mean radius of the earth", in m. (FYI)
 
 circle.pts <- function(lonlatpoint, radius) {
      Rearth <- 6372795
-     travelvector <- data.frame(cbind(direction = seq(0, 2*pi, by = 2* pi / 100),
-                                      magnitude = radius))
-     Dd <- travelvector$magnitude / Rearth
-     Cc <- travelvector$direction
-
-     if (class(lonlatpoint) == "SpatialPoints") {
-         lata <- coordinates(lonlatpoint)[1, 2] * (pi / 180)
-         lona <- coordinates(lonlatpoint)[1, 1] * (pi / 180)
-     }
-     else {
-         lata <- lonlatpoint[2] * (pi / 180)
-         lona <- lonlatpoint[1] * (pi / 180)
-     }
+     magnitude <- radius / Rearth
      
-     latb <- asin(cos(Cc) * cos(lata) * sin(Dd) + sin(lata) * cos(Dd))
-     dlon <- atan2(cos(Dd) - sin(lata) * sin(latb), sin(Cc) * sin(Dd) * cos(lata))
-     lonb <- lona - dlon + pi / 2
+     lonlatpoint <- unique(lonlatpoint)
+     lonlatpoint <- lonlatpoint * (pi / 180)
+     lonlatpoint[3] <- paste0('circle', seq(1,nrow(lonlatpoint),1))
+     
+     direction <- seq(0, 2*pi, by = 2* pi / 100)
+     direction <- rep(direction, times = nrow(lonlatpoint))
+     lonlatpoint <- lonlatpoint[rep(1:nrow(lonlatpoint),
+                                    each = 101),]
+
+     
+     latb <- asin(cos(direction) * cos(lonlatpoint[,2]) * sin(magnitude) +
+                    sin(lonlatpoint[,2]) * cos(magnitude))
+     dlon <- atan2(cos(magnitude) - sin(lonlatpoint[,2]) * sin(latb),
+                   sin(direction) * sin(magnitude) * cos(lonlatpoint[,2]))
+     lonb <- lonlatpoint[,1] - dlon + pi / 2
 
      lonb[lonb >  pi] <- lonb[lonb >  pi] - 2 * pi
      lonb[lonb < -pi] <- lonb[lonb < -pi] + 2 * pi
@@ -34,5 +35,5 @@ circle.pts <- function(lonlatpoint, radius) {
      latb <- latb * (180 / pi)
      lonb <- lonb * (180 / pi)
 
-     data.frame(cbind(long = lonb, lat = latb))
+     data.frame(long = lonb, lat = latb, circle = lonlatpoint[,3])
 }

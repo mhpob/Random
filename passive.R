@@ -20,36 +20,17 @@ pass.dat <- read.csv('p:/obrien/biotelemetry/csi/listening/activedata.csv',
 pk.dat <- filter(pass.dat, grepl('PK', Site.ID))
 yk.dat <- filter(pass.dat, grepl('YK', Site.ID))
 
-ggplot()+geom_path(data=pk.plot, aes(x=long, y=lat, group=group))+
-  geom_point(data=yk.dat, aes(DD.Long,DD.Lat))
+c1 <- filter(yk.dat, Cruise == '2014_1')
+circ1 <- circle.pts(select(c1, DD.Long, DD.Lat), 1609.34)
 
 
+ggplot() + geom_path(data = yk.plot, aes(x = long, y = lat, group = group))+
+  geom_point(data = c1, aes(x = DD.Long, y = DD.Lat)) +
+  geom_polygon(data = circ1,
+            aes(long, lat, group = circle), color = 'green')
+
+# Selecting parts of the circle within shapefile doesn't work quite yet.
+# inLoc <-point.in.polygon(circ1[,1],circ1[,2], c1[,7],c1[,6])
+# circ1 <- circ1[inLoc == 1,]
 
 
-
-pass.dat$Detections <- factor(pass.dat$Detections)
-
-
-mapbase <- ggplot(yk.df) +
-  geom_path(aes(long, lat, group = group), color = 'black') + theme_bw()
-
-mapbase + geom_point(data = filter(pass.dat, Cruise == '2014_1'),
-                     aes(DD.Long, DD.Lat, size = Detections),
-                     color = 'red') +
-  ggtitle('2014_1') + scale_size_manual(values = c(1,4,8,12),
-                                        breaks = c(0,1,2,3))
-  
-mapbase + geom_point(data = filter(pass.dat, Cruise == '2014_2'),
-                     aes(DD.Long, DD.Lat, size = Detections),
-                     color = 'red') +
-  ggtitle('2014_2') + scale_size_manual(values = c(1,4,8,12),
-                                        breaks = c(0,1,2,3))
-mapbase + geom_point(data = filter(pass.dat, Cruise == '2014_3'),
-                     aes(DD.Long, DD.Lat, size = Detections),
-                     color = 'red') +
-  ggtitle('2014_3') + scale_size_area(limits = c(0,3),
-                                      breaks = c(0,1,2,3))
-mapbase + geom_point(data = filter(pass.dat, Cruise == '2014_4'),
-                     aes(DD.Long, DD.Lat, size = Detections),
-                     color = 'red') +
-  ggtitle('2014_4') + scale_size_manual(values = c(1,4,6,8))
