@@ -48,9 +48,17 @@ distances <- lc.dist(hud.geo, testsites, res = 'dist')
 
 # Check that the paths worked
 plot(ras.water, col = 'grey')
-lines(out[[1]][,1], out[[1]][,2], col = 'red', lwd = 2)
+lines(paths[[1]][,1], paths[[1]][,2], col = 'red', lwd = 2)
 points(uec.mean, col = 'blue')
 
-#create values for GEarth KML object
-k <- cbind(out[[1]], 0)
-write.csv(k, "c:/users/secor lab/desktop/hold.csv", quote = F, row.names = F, col.names = NA)
+# Create GEarth KML paths
+k <- lapply(paths, cbind, 0)
+
+for(i in length(k)){ 
+cat('<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://earth.google.com/kml/2.1">\n<Document>\n<Placemark>\n<name>Path A</name>\n<LineString>\n<tessellate>1</tessellate>\n<coordinates>\n',
+    file = paste0('output',i,'.kml'))
+write.table(k[[i]], row.names = F, col.names = F, sep = ',',
+            file = paste0('output',i,'.kml'), append = T)
+cat('</coordinates>\n</LineString>\n</Placemark>\n</Document>\n</kml>',
+    file = paste0('output',i,'.kml'), append = T)
+}
