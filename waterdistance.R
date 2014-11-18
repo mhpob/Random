@@ -5,56 +5,52 @@ library(rgdal)
 
 # Will now try to use custom shapefile
 midstates <- shapefile('p:/obrien/gis/shapefiles/midatlantic/matl_states_land.shp')
+midstates <- midstates[midstates@data$STATE_ABBR %in% c('NY','CT','NJ','DE','PA'),]
 
 # Create nonsense raster file to clip shapefile
-ext <- extent(-75.6, -73.6, 38.7, 42.7)
-xy <- abs(apply(as.matrix(bbox(ext)), 1, diff))
-ras <- function(xy, n) raster(ext, ncol = xy[1] * n, nrow = xy[2] * n)
-ras.back <- ras(xy, 800)
-ras.back[] <- 1
-proj4string(ras.back) <- proj4string(midstates)
-# Create clipped raster from the shapefile
-ras.mid <- rasterize(midstates, ras.back)
-# Rasterize the water, drop the land
-ras.water <- mask(ras.back, ras.mid, inverse = T)
-# Make NAs 0 for least-distance calculation
-# Might not need to do this. Should check.
-ras.water[is.na(ras.water)] <- 0
+ras.back <- raster(extent(-75.6, -73.6, 38.7, 42),
+                   resolution = 1/720, #Half arc-second grids
+                   vals = 1,
+                   crs = proj4string(midstates))
+# Create clipped raster from the shapefile-- Rasterize the water, drop the land
+ras.water <- mask(ras.back, midstates, inverse = T)
+# Transition matrix
+hud.trans16 <- transition(ras.water, transitionFunction = function(x){1}, 16)
+# Geographic correction
+hud.geo16 <- geoCorrection(hud.trans16, type = 'c')
 
+#Import site locations
+uecsites <- read.csv(
+  'c:/users/secor lab/desktop/hbailey/nyharbour_datafile_uec.csv',
+  header = T, stringsAsFactors = F)
+lecsites <- read.csv(
+  'c:/users/secor lab/desktop/hbailey/nyharbour_datafile_lec.csv',
+  header = T, stringsAsFactors = F)
+allsites <- rbind(uecsites, lecsites)
 
-hud.trans <- transition(ras.water, transitionFunction=function(x){1}, 4)
-# Should use geoCorrection here
-sites <- read.csv('c:/users/secor lab/downloads/nyharbour_datafile_uec.csv',
-                  header = T, stringsAsFactors = F)
-
-sites <- sites %>%
+uec.mean <- uecsites %>%
   mutate(Longitude = ifelse(Longitude >= 0, -Longitude, Longitude)) %>%
   select(Station.Name, Latitude, Longitude) %>%
   group_by(Station.Name) %>%
   summarize(Lat = mean(Latitude), Lon = mean(Longitude)) %>%
-  filter(Lat <= 42) %>%
+  filter(Lat <= 42, Lat >= 38.7, Lon <= -73.6, Lon >= -75.6) %>%
+  sample_n(10) %>%
   as.data.frame()
 
-row.names(sites) <- sites[,1]
-sites <- sites[,c(3,2)]
+row.names(uec.mean) <- uec.mean[,1]
+testsites <- uec.mean[,c(3,2)]
 
-#sites1 <- data.frame(x = c(-73.9407, -74.2181), y = c(41.1905, 40.4950))
-out <- lc.dist(hud.trans, sites, res = "path")
 
-lc.dist(trans1, sites, res = 'dist')
+# Calculate paths using lc.dist() from marmap (iterative calc of multiple paths)
+paths <- lc.dist(hud.geo, testsites, res = "path")
+# Calculate distances of paths. Note that distances are in rounded km.
+distances <- lc.dist(hud.geo, testsites, res = 'dist')
 
-map <- getData("GADM", country = "USA", level = 1)
-map <- map[map$NAME_1 %in% c("New York", "New Jersey"),]
-plot(map, xlim = c(-74.4, -73.5), ylim = c(40.35, 41.25), col = 'grey')
+# Check that the paths worked
+plot(ras.water, col = 'grey')
 lines(out[[1]][,1], out[[1]][,2], col = 'red', lwd = 2)
-points(sites, col = 'blue')
+points(uec.mean, col = 'blue')
 
-# #create values for GEarth KML object
-# k <- cbind(out1[[1]], 0)
-# write.csv(k, "c:/users/secor lab/desktop/hold.csv", quote = F, row.names = F, col.names = F)
-
-# hudmap <- shapefile('c:/users/secor lab/desktop/gis products/hr_morphology/dfw_hudson_river_morphology.shp')
-# hudlat <- spTransform(hudmap, CRS('+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0'))
-# hudlat
-# plot(hudlat)
-
+#create values for GEarth KML object
+k <- cbind(out[[1]], 0)
+write.csv(k, "c:/users/secor lab/desktop/hold.csv", quote = F, row.names = F, col.names = NA)
