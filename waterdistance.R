@@ -5,13 +5,20 @@ library(rgdal)
 
 # Will now try to use custom shapefile
 midstates <- shapefile('p:/obrien/gis/shapefiles/midatlantic/matl_states_land.shp')
-midstates <- midstates[midstates@data$STATE_ABBR %in% c('NY','CT','NJ','DE','PA'),]
 
 # Create nonsense raster file to clip shapefile
-ras.back <- raster(extent(-75.6, -73.6, 38.7, 42),
+ras.back <- raster(extent(-75.6, -73.6, 38.7, 42), ##CHANGE TO ACCOMODATE ALL SITES!!!!!!!
                    resolution = 1/720, #Half arc-second grids
                    vals = 1,
                    crs = proj4string(midstates))
+# Also need to clip out a large portion of what will be ocean for memory
+mem.crop <- cbind(c(-75.8, -69.8, -69.8, -75.8), c(37, 37, 41.2, 37))
+mem.crop <- SpatialPolygons(list(Polygons(list(Polygon(mem.crop)),
+                                          'Memory-Wasting Ocean')),
+                            proj4string = CRS(proj4string(midstates)))
+
+ras.tri <- mask(ras.back, mem.crop, inverse = T)
+
 # Create clipped raster from the shapefile-- Rasterize the water, drop the land
 ras.water <- mask(ras.back, midstates, inverse = T)
 # Transition matrix
@@ -28,23 +35,21 @@ lecsites <- read.csv(
   header = T, stringsAsFactors = F)
 allsites <- rbind(uecsites, lecsites)
 
-uec.mean <- uecsites %>%
+all.mean <- allsites %>%
   mutate(Longitude = ifelse(Longitude >= 0, -Longitude, Longitude)) %>%
   select(Station.Name, Latitude, Longitude) %>%
   group_by(Station.Name) %>%
   summarize(Lat = mean(Latitude), Lon = mean(Longitude)) %>%
-  filter(Lat <= 42, Lat >= 38.7, Lon <= -73.6, Lon >= -75.6) %>%
-  sample_n(10) %>%
   as.data.frame()
 
-row.names(uec.mean) <- uec.mean[,1]
-testsites <- uec.mean[,c(3,2)]
+row.names(all.mean) <- all.mean[, 1]
+all.mean <- all.mean[, c(3, 2)]
 
 
 # Calculate paths using lc.dist() from marmap (iterative calc of multiple paths)
-paths <- lc.dist(hud.geo, testsites, res = "path")
+paths <- lc.dist(hud.geo16, all.mean, res = "path")
 # Calculate distances of paths. Note that distances are in rounded km.
-distances <- lc.dist(hud.geo, testsites, res = 'dist')
+distances <- lc.dist(hud.geo16, all.mean, res = 'dist')
 
 # Check that the paths worked
 plot(ras.water, col = 'grey')
@@ -54,7 +59,7 @@ points(uec.mean, col = 'blue')
 # Create GEarth KML paths
 k <- lapply(paths, cbind, 0)
 
-for(i in length(k)){ 
+for(i in seq(1,length(k))){ 
 cat('<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://earth.google.com/kml/2.1">\n<Document>\n<Placemark>\n<name>Path A</name>\n<LineString>\n<tessellate>1</tessellate>\n<coordinates>\n',
     file = paste0('output',i,'.kml'))
 write.table(k[[i]], row.names = F, col.names = F, sep = ',',
