@@ -1,4 +1,6 @@
 library(dplyr); library(gdistance); library(raster); library(rgdal)
+# library(gmailr) # used to email me after a long run
+# gmail_auth('auth.json', 'full')
 
 # Use custom shapefile
 midstates <- shapefile('p:/obrien/gis/shapefiles/midatlantic/matl_states_land.shp')
@@ -23,8 +25,12 @@ rm(midstates, ras.back, mem.crop)
 
 # Transition matrix between raster cells
 hud.trans16 <- transition(ras.water, transitionFunction = function(x){1}, 16)
+# send_message(mime() %>% to('2679701973@txt.att.net') %>%
+#                subject('Transition layer done.'))
 # Geographic correction
 hud.geo16 <- geoCorrection(hud.trans16, type = 'c')
+# send_message(mime() %>% to('2679701973@txt.att.net') %>%
+#                subject('Correction done.'))
 
 #Import site locations
 uecsites <- read.csv(
@@ -51,6 +57,8 @@ rm(hud.trans16, uecsites, lecsites, allsites)
 paths <- marmap::lc.dist(hud.geo16, all.mean, res = "path")
 # Calculate distances of paths. Note that distances are in rounded km.
 distances <- marmap::lc.dist(hud.geo16, all.mean, res = 'dist')
+# send_message(mime() %>% to('2679701973@txt.att.net') %>%
+#                subject('Paths done.'))
 
 # Quick check that the paths worked
 plot(ras.water, col = 'grey')
