@@ -98,10 +98,10 @@ points(all.mean, col = 'blue')
 # Create GEarth KML paths
 paths <- lapply(paths, cbind, 0)
 
-for(i in seq(1,length(k))){ 
+for(i in seq(1,length(paths))){ 
 cat('<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://earth.google.com/kml/2.1">\n<Document>\n<Placemark>\n<name>Path A</name>\n<LineString>\n<tessellate>1</tessellate>\n<coordinates>\n',
     file = paste0('path',i,'.kml'))
-write.table(k[[i]], row.names = F, col.names = F, sep = ',',
+write.table(paths[[i]], row.names = F, col.names = F, sep = ',',
             file = paste0('path',i,'.kml'), append = T)
 cat('</coordinates>\n</LineString>\n</Placemark>\n</Document>\n</kml>',
     file = paste0('path',i,'.kml'), append = T)
