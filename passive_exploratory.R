@@ -10,47 +10,69 @@ pd_no0 <- pass.dat %>%
   filter(Detections > 0)
 
 pd_bot <- pass.dat %>%
-  filter(Type == 'B')
+  filter(Type == 'B') %>% 
+  mutate(bin = findInterval(DO.pct,
+                            seq(floor(range(DO.pct)[1]),
+                                ceiling(range(DO.pct)[2]), 5)))
+
+test <- pd_bot %>%
+  group_by(bin) %>%
+  summarize(detect = sum(Detections))
 
 pd_bot_n0 <- pass.dat %>%
   filter(Type == 'B',
-         Detections > 0)
+         Detections > 0) %>%
+  mutate(bin = findInterval(DO.pct,
+                            seq(floor(range(DO.pct)[1]),
+                                ceiling(range(DO.pct)[2]), 5)))
 
 pd_mean <- pass.dat %>%
   group_by(Site.ID, Cruise) %>%
   summarize(temp = mean(Temp),
             do = mean(DO.pct),
             sal = mean(Sal),
-            det = mean(Detections))
+            det = sum(mean(Detections)))
 
 
-par(mar = c(5, 4, 4, 5) + 0.1)
-plot(density(pd_bot$DO.pct), xlim = c(10, 130),
-     "Dissolved Oxygen (%)")
-par(new = T)
-plot(x = pd_bot_n0$DO.pct, y = pd_bot_n0$Detections,
-     xlim = c(10, 130),ylim = c(0, 3), col = 'blue',
-     xaxt = "n", yaxt = "n", xlab = "", ylab = "")
-axis(4, at = c(0, 1, 2, 3), col.axis = 'blue')
-mtext('Detections', side = 4, line = 3, col = 'blue')
+test <- function(var, brk){
+  pd_bot <- pass.dat %>%
+    filter(Type == 'B')
+  pd_bot <- pd_bot %>%  
+    mutate(bin = findInterval(pd_bot[, var],
+                              seq(floor(range(pd_bot[, var])[1]),
+                                  ceiling(range(pd_bot[, var])[2]), brk)))
+  det.bins <- pd_bot %>%
+    group_by(bin) %>%
+    summarize(detect = sum(Detections))
+  
+  histo <- hist(pd_bot[, var], breaks = seq(floor(range(pd_bot[, var])[1]),
+                                            ceiling(range(pd_bot[, var])[2]),
+                                            brk),
+                plot = F)
+  mids <- data.frame(mids = histo$mids)
+  mids$bin <- row.names(mids)
+    
+  det.bins <- merge(det.bins, mids)
+  det.bins <- det.bins[det.bins$detect != 0,]
 
-par(mar = c(5, 4, 4, 5) + 0.1)
-plot(density(pd_bot$Temp), xlim = c(10, 35),
-     'Temperature (°C)')
-par(new = T)
-plot(x = pd_bot_n0$Temp, y = pd_bot_n0$Detections,
-     xlim = c(10, 35),ylim = c(0, 3), col = 'blue',
-     xaxt = "n", yaxt = "n", xlab = "", ylab = "")
-axis(4, at = c(0, 1, 2, 3), col.axis = 'blue')
-mtext('Detections', side = 4, line = 3, col = 'blue')
+  par(mar = c(5, 4, 4, 5) + 0.1)
+  plot(histo, main = var, xlab = var, 
+       xlim = c(floor(range(pd_bot[, var])[1]),
+                ceiling(range(pd_bot[, var])[2])))
+  par(new = T)
+  plot(det.bins$mids, det.bins$detect,
+       xlim = c(floor(range(pd_bot[, var])[1]),
+                ceiling(range(pd_bot[, var])[2])),
+       col = 'blue', xaxt = "n", yaxt = "n", xlab = "", ylab = "")
+  axis(4, at = seq(0, ceiling(range(det.bins$detect)[2]), 5),
+       col.axis = 'blue')
+  mtext('Detections', side = 4, line = 3, col = 'blue')
+}
 
+test('Temp', 1)
+test('DO.pct', 5)
+test('Sal', 2)
+test('Cond', 2)
 
-par(mar = c(5, 4, 4, 5) + 0.1)
-plot(density(pd_bot$Sal), xlim=c(0, 30),
-     'Salinity')
-par(new = T)
-plot(x = pd_bot_n0$Sal, y = pd_bot_n0$Detections,
-     xlim = c(0, 30), ylim = c(0, 3), col = 'blue',
-     xaxt = "n", yaxt = "n", xlab = "", ylab = "")
-axis(4, at = c(0, 1, 2, 3), col.axis = 'blue')
-mtext('Detections', side = 4, line = 3, col = 'blue')
+ggplot() + geom_histogram(pd_bot, aes(x = DO.pct)) +
+  geom_bar(test, aes(x=detect))
