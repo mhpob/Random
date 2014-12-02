@@ -6,32 +6,12 @@ pass.dat <- pass.dat %>%
   mutate(pred.growth = sturgrow(Temp, Sal, DO.pct),
          river = substr(Site.ID, 1, 2))
 
-pd_no0 <- pass.dat %>%
-  filter(Detections > 0)
-
-pd_bot <- pass.dat %>%
-  filter(Type == 'B') %>% 
-  mutate(bin = findInterval(DO.pct,
-                            seq(floor(range(DO.pct)[1]),
-                                ceiling(range(DO.pct)[2]), 5)))
-
-test <- pd_bot %>%
-  group_by(bin) %>%
-  summarize(detect = sum(Detections))
-
-pd_bot_n0 <- pass.dat %>%
-  filter(Type == 'B',
-         Detections > 0) %>%
-  mutate(bin = findInterval(DO.pct,
-                            seq(floor(range(DO.pct)[1]),
-                                ceiling(range(DO.pct)[2]), 5)))
-
 pd_mean <- pass.dat %>%
   group_by(Site.ID, Cruise) %>%
   summarize(temp = mean(Temp),
             do = mean(DO.pct),
             sal = mean(Sal),
-            det = sum(mean(Detections)))
+            det = mean(Detections))
 
 
 test <- function(var, brk){
