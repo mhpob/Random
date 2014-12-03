@@ -59,11 +59,19 @@ test('Cond', 2)
 pd_bot <- pass.dat %>%
     filter(Type == 'B')
 histoplot <- function (var, binwidth = NULL) {
+  det.data <- substitute(pd_bot %>% filter(Detections > 0) %>% arrange(var) %>%
+                           mutate(cumulative = cumsum(Detections),
+                                  cumulative = cumulative/max(cumulative)*100),
+                         list(var = as.name(var)))
+  det.data <- eval(det.data)
+  
   call <- substitute(ggplot() + geom_histogram(data = pd_bot, aes(x = var),
                                                binwidth = binwidth) +
-                       geom_histogram(data = filter(pd_bot, Detections > 0),
+                       geom_histogram(data = det.data,
                                       aes(x = var, color = 'red'),
-                                      binwidth = binwidth),
+                                      binwidth = binwidth) +
+                       geom_line(data = det.data, aes(x = var,
+                                                      y = cumulative)),
                      list(var = as.name(var)))
   eval(call)
 }
