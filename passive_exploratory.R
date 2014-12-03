@@ -54,5 +54,22 @@ test('DO.pct', 5)
 test('Sal', 2)
 test('Cond', 2)
 
-ggplot() + geom_histogram(pd_bot, aes(x = DO.pct)) +
-  geom_bar(test, aes(x=detect))
+
+# Overplot general histogram, then histogram where detections > 0
+pd_bot <- pass.dat %>%
+    filter(Type == 'B')
+histoplot <- function (var, binwidth = NULL) {
+  call <- substitute(ggplot() + geom_histogram(data = pd_bot, aes(x = var),
+                                               binwidth = binwidth) +
+                       geom_histogram(data = filter(pd_bot, Detections > 0),
+                                      aes(x = var, color = 'red'),
+                                      binwidth = binwidth),
+                     list(var = as.name(var)))
+  eval(call)
+}
+histoplot('DO.pct', 5)
+histoplot('Temp', 1)
+histoplot('Sal', 2)
+histoplot('Cond', 2)
+histoplot('pred.growth')
+histoplot('Depth')
