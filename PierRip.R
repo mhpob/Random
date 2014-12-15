@@ -2,12 +2,13 @@
 # https://stormcentral.waterlog.com/SiteDetails.php?a=88&site=1&pa=CBLPier
 # between specified dates/times in ymd_hms format
 
-cblpier <- function(stdate = '2014-03-04 00:00:00', enddate = as.character(Sys.time())){
+cblpier <- function(stdate = '2014-03-04 00:00:00',
+                    enddate = as.character(Sys.time())){
   library(lubridate)
   tounix <- function(x){
     as.numeric(
-      ymd_hms(
-        ifelse(nchar(x) <= 14, paste(unlist(strsplit(x,' '))[1], '00:00:00'), x)
+      lubridate::ymd_hms(
+        ifelse(nchar(x) <= 14, paste(unlist(strsplit(x, ' '))[1], '00:00:00'), x)
       ))
   }
   
@@ -23,14 +24,15 @@ cblpier <- function(stdate = '2014-03-04 00:00:00', enddate = as.character(Sys.t
   
   datacode <- unlist(strsplit(xmltree[3], '<SiteData>'))[2]
   datacode <- unlist(strsplit(datacode, '</SiteData>'))[1]
-  pierdata <- read.csv(paste0('https://stormcentral.waterlog.com/download.php/data/',
-                      datacode, '-d.csv?filename=thisdoesntmatter'),
-                      skip = 1, header = T, 
-                      na.strings = c('NA', '-99.99'), stringsAsFactors = F)
+  pierdata <- read.csv(
+    paste0('https://stormcentral.waterlog.com/download.php/data/',
+           datacode, '-d.csv?filename=thisdoesntmatter'),
+    skip = 1, header = T,
+    na.strings = c('NA', '-99.99'), stringsAsFactors = F)
   
   # Drop short-lived second sonde if in data
   if(T %in% grepl('EXO2_2', names(pierdata))) {
-    pierdata <- pierdata[,-(3:8)]
+    pierdata <- pierdata[, -(3:8)]
   }
   
   # Drop empty samples
@@ -44,7 +46,8 @@ cblpier <- function(stdate = '2014-03-04 00:00:00', enddate = as.character(Sys.t
                             'DO_con', 'Depth', 'Sal', 'Batt')
   units <- list(Temp = 'Degrees Celsius', SpCond = 'microSeimens/centimeter',
            Turb = 'Nephelometric Turbidity Units', DO_pct = 'Percent Saturation',
-           DO_con = 'milligrams/Liter', Depth = 'Meters', Sal = '', Batt = 'Volts')
+           DO_con = 'milligrams/Liter', Depth = 'Meters', Sal = '',
+           Batt = 'Volts')
   
   list(units, pierdata)
 }
@@ -56,6 +59,3 @@ cblpier <- function(stdate = '2014-03-04 00:00:00', enddate = as.character(Sys.t
 # datacode <- xmlSApply(root[[1]], xmlValue)[1]
 #
 # Then continue with 'pierdata <- read.csv(...)'
-
-
-

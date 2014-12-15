@@ -13,12 +13,13 @@
 NOAAimp <- function(START, END, STATION, DATA){
   START <- as.Date(as.character(START), format = "%Y%m%d")
   END <- as.Date(as.character(END), format = "%Y%m%d")
-  STARTS <- seq(START,END,'months')
-  STARTS <- paste(format(STARTS, "%Y"),format(STARTS, "%m"),format(STARTS, "%d"), sep='')
+  STARTS <- seq(START, END, 'months')
+  STARTS <- paste(format(STARTS, "%Y"), format(STARTS, "%m"),
+                  format(STARTS, "%d"), sep='')
   j <- paste('http://tidesandcurrents.noaa.gov/api/datagetter?begin_date=',
-           STARTS,'&range=744&station=',STATION,'&product=',DATA,
+           STARTS, '&range=744&station=', STATION, '&product=', DATA,
            '&units=metric&time_zone=gmt&application=UMCES&format=csv', sep = '')
-  jj <- lapply(j,read.csv)
+  jj <- lapply(j, read.csv)
   jjj <- do.call(rbind, jj)
 }
 

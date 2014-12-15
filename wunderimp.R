@@ -17,13 +17,13 @@ if(('lubridate' %in% installed.packages()) == F) install.packages('lubridate')
 library(lubridate)
 
 wunderimp <- function (station, start, end = Sys.Date()) {
-  end <- ymd(end)
-  startyr <- year(seq(ymd(start), end, by = 'year'))
+  end <- lubridate::ymd(end)
+  startyr <- year(seq(lubridate::ymd(start), end, by = 'year'))
   
   url <- paste0("http://www.wunderground.com/history/airport/", station, "/",
                 startyr, "/", month(start), "/", day(start),
-                "/CustomHistory.html?dayend=", day(end), "&monthend=", month(end),
-                "&yearend=", year(end), "&format=1")
+                "/CustomHistory.html?dayend=", day(end), "&monthend=",
+                month(end), "&yearend=", year(end), "&format=1")
   
   data <- lapply(url, read.csv)
   
@@ -37,8 +37,9 @@ wunderimp <- function (station, start, end = Sys.Date()) {
   date <- unique(data)
   
   # Remove HTML breaks from final column
-  data[,23] <- as.numeric(do.call(rbind, strsplit(as.character(data[, 23]), '<br />')))
-  names(data)[23]<- "WindDirDeg"
+  data[, 23] <- as.numeric(do.call(rbind,
+                                  strsplit(as.character(data[, 23]), '<br />')))
+  names(data)[23] <- "WindDirDeg"
   
   data
 }
