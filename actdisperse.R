@@ -12,7 +12,7 @@ false.pos <- c("A69-1303-15268", "A69-1303-21996", "A69-1303-55828",
 
 # Tag "A69-9001-26563" is MD DNR's test transmitter.
 
-unid <- TelemetryR::ACTsplit('p:/obrien/biotelemetry/detections',
+unid <- ACTsplit('p:/obrien/biotelemetry/detections',
                  my.trans = paste0('A69-1601-', seq(25434,25533,1)),
-                 false.det = false.pos,
-                 write = F)
+                 false.det = false.pos, write = T, start = '20141001',
+                 out = 'p:/obrien/biotelemetry')
