@@ -1,20 +1,47 @@
-devtools::install_github('droglenc/FSA')
-library(FSA); library(dplyr)
+# devtools::install_github('droglenc/FSA')
+library(FSA); library(ggplot2); library(dplyr)
 
-al <- read.csv('age_length.csv')
+## Data import
+locs <- do.call(paste, list('c:/users/secor lab/desktop/odu striped bass ages',
+            list.files(path ='c:/users/secor lab/desktop/odu striped bass ages',
+                       pattern = '*.csv'), sep = '/'))
+data <- lapply(locs, FUN = read.csv,
+                        header = T, stringsAsFactors = F, na.strings = "")
+al <- do.call(rbind.data.frame, data)
 al <- al %>% 
-  mutate(fl.in = FL * 0.03937) %>% 
-  slice(-c(153, 86, 244)) %>% 
-  arrange(Age)
+  filter(!is.na(OTOAGE),
+         TOTAL > 0, OTOAGE > 0) %>% 
+  select(TOTAL, OTOAGE) %>% 
+  mutate(TOTAL = 0.0393701 * TOTAL,
+         TOTAL = floor(TOTAL),
+         TOTAL = ifelse(TOTAL >= 48, '>48', TOTAL))
 
-alk <- Summarize(al$fl.in ~ al$Age)
+al.quar <- al %>% 
+  group_by(TOTAL) %>%
+  summarize(fstqu = quantile(OTOAGE)['25%'],
+            med = quantile(OTOAGE)['50%'],
+            thrdqu = quantile(OTOAGE)['75%'])
+write.csv(al.quar, 'age_length.csv', row.names = F)
+
+ggplot(data = al, aes(x = OTOAGE, y = TOTAL)) +
+  geom_smooth(se = F, size = 2) + geom_point() +
+  labs(x = 'Age', y = 'Total Length (inches)') + 
+  theme_bw()
+
+ggplot(data = al, aes(x = factor(TOTAL), y = OTOAGE)) + geom_boxplot() +
+  scale_y_continuous(breaks = seq(0,27))
+
+
+
+
+alk <- Summarize(al$TOTAL ~ al$OTOAGE)
 names(alk)[1] <- 'age'
 alk$age <- as.numeric(levels(alk$age)[alk$age])
 
 vbF <- vbFuns('typical')
-vbb <- nls(fl.in ~ vbF(Age, Linf, K, t0), data = al,
-           start = vbStarts(fl.in ~ Age, data = al, type = 'typical'))
-plot(al$Age, al$fl.in)
+vbb <- nls(TOTAL ~ vbF(OTOAGE, Linf, K, t0), data = al,
+           start = vbStarts(TOTAL ~ OTOAGE, data = al, type = 'typical'))
+plot(al$OTOAGE, al$TOTAL)
 curve(vbF(x, Linf = coef(vbb)), add = T, col = 'red')
 
 summary(vbb)
@@ -22,14 +49,6 @@ summary(vbb)
 
 plot(alk$age, alk$sd)
 plot(vbb)
-
-library(changepoint)
-sd.cpt <- cpt.mean(alk[!is.na(alk$sd),'sd'], pen.value = 0.05)
-plot(sd.cpt)
-coef(sd.cpt)
-# $mean
-# [1] 1.445930 4.250993
-cpts(sd.cpt) #returns index == between ages 6 and 7
 
 j <- data.frame(matrix(c(14, rep(NA,9)), 1))
 names(j) <- names(alk)
