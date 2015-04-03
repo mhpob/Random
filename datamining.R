@@ -5,27 +5,12 @@
 
 
 ### Web scraping ---------------------------------------------------------------
-library(rvest); library(ggplot2); library(dplyr)
-
-## Rugby
-RWC <- html('http://en.wikipedia.org/wiki/Rugby_World_Cup')
-
-tourneys <- RWC %>%
-  html_nodes('table') %>%
-  .[[3]] %>%
-  html_table()
-
-tourneys$'Total attendance' <- 
-  as.numeric(unlist(lapply(strsplit(tourneys$'Total attendance', ','),
-       paste, collapse = '')))
-
-ggplot() + geom_line(data = tourneys, aes(x = Year, y = `Total attendance`))
-
+library(rvest); library(ggplot2)
 
 ## Tom
 tom <- html('https://scholar.google.com/citations?user=cET1m2EAAAAJ&hl=en&pagesize=200')
 tomcite <- tom %>%
-  html_nodes('table') %>%
+  html_nodes('table') %>% 
   .[[2]] %>%
   html_table()
 
@@ -42,6 +27,20 @@ ggplot() + geom_point(data = tomcite, aes(year, cites, color = fish), size = 5)
 tomcite$nation <- ifelse(grepl('Canadian', tomcite$title), 'Canada',
                   ifelse(grepl('American', tomcite$title), 'Murica','Other'))
 ggplot() + geom_point(data = tomcite, aes(year, cites, color = nation), size = 5)
+
+## Rugby
+RWC <- html('http://en.wikipedia.org/wiki/Rugby_World_Cup')
+
+tourneys <- RWC %>%
+  html_nodes('table') %>%
+  .[[3]] %>%
+  html_table()
+
+tourneys$'Total attendance' <- 
+  as.numeric(unlist(lapply(strsplit(tourneys$'Total attendance', ','),
+       paste, collapse = '')))
+
+ggplot() + geom_line(data = tourneys, aes(x = Year, y = `Total attendance`))
 
 ### Other ----------------------------------------------------------------------
 # CBL Pier
