@@ -2,7 +2,8 @@
 # http://stormcentral.waterlog.com/SiteDetails.php?a=88&site=2&pa=CBLPier
 # between specified dates/times in ymd_hms format
 
-cblpier <- function(stdate = '2014-03-04 00:00:00',
+
+cblpier <- function(stdate = '2015-03-31 00:00:00',
                     enddate = as.character(Sys.time())){
   library(lubridate)
   tounix <- function(x){
@@ -43,12 +44,6 @@ cblpier <- function(stdate = '2014-03-04 00:00:00',
   pierdata <- pierdata[, -2]
   row.names(pierdata) <- NULL
   names(pierdata)[2:12] <- lapply(strsplit(names(pierdata)[2:12], '[.]'), '[', 2)
+  
+  pierdata
 }
-
-
-# Using RCurl, XML packages
-# xmltree <- getURL('https://stormcentral.waterlog.com/xml/SiteDetailsSiteData.php?Site=1&Acct=88&Start=0&Range=864000000', ssl.verifypeer = F)
-# root <- xmlRoot(xmlTreeParse(xmltree, getDTD = F))
-# datacode <- xmlSApply(root[[1]], xmlValue)[1]
-#
-# Then continue with 'pierdata <- read.csv(...)'
