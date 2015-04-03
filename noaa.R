@@ -16,11 +16,11 @@ NOAAimp <- function(START, END, STATION, DATA){
   STARTS <- seq(START, END, 'months')
   STARTS <- paste(format(STARTS, "%Y"), format(STARTS, "%m"),
                   format(STARTS, "%d"), sep='')
-  j <- paste('http://tidesandcurrents.noaa.gov/api/datagetter?begin_date=',
+  urls <- paste('http://tidesandcurrents.noaa.gov/api/datagetter?begin_date=',
            STARTS, '&range=744&station=', STATION, '&product=', DATA,
            '&units=metric&time_zone=gmt&application=UMCES&format=csv', sep = '')
-  jj <- lapply(j, read.csv)
-  jjj <- do.call(rbind, jj)
+  data.list <- lapply(urls, read.csv)
+  data <- do.call(rbind, data.list)
 }
 
 #### Example usage:
