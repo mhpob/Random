@@ -2,12 +2,18 @@ CBP Water Quality Database(1984-present) CBP_WQDB
 CBP Water Quality Database(1949-1982) CBI_WQDB 
 http://api.chesapeakebay.net/rest/DataHubRESTSrv/dhHelper.svc/getExtentData/WATER_BODIES/Water_Quality_Data/CBP_WQDB 
 
-j<-readLines('http://api.chesapeakebay.net/getWQWaterQuality.svc/WATER_BODIES/101,110,29,40,66,81,93/51/false/12311983/05212010')
-jj<-xmlRoot(j)
-p <- xmlSApply(jj, function(x) xmlSApply(x, xmlValue))
-pt <- data.frame(t(p), row.names = NULL)
+library(XML)
+cbpurl <- xmlTreeParse('http://api.chesapeakebay.net/getWQWaterQuality.svc/WATER_BODIES/101,110,29,40,66,81,93/51/false/12311983/05212010')
+cbproot <- xmlRoot(cbpurl)
+cbp <- xmlSApply(cbproot, function(x) xmlSApply(x, xmlValue))
 
-ptt <- apply(pt,2,unlist)
+# Change class
+cbpchar <- apply(cbp, 1, as.character)
+cbp_df <- data.frame(cbpchar, row.names = NULL,
+                     stringsAsFactors = F)
+cbp_df <- lapply(cbp_df, type.convert, na.strings = 'character(0)')
+cbp_df <- do.call(cbind.data.frame, cbp_df)
+
 
 # Sassafras 101
 #Susquehanna 110
