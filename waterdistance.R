@@ -9,11 +9,11 @@ options(error = function(){
 # options(error = NULL) # Reset error options (no message)
 
 # Use custom shapefile
-midstates <- shapefile('p:/obrien/gis/shapefiles/midatlantic/matl_states_land.shp')
+midstates <- shapefile('p:/obrien/midatlantic/matl_states_land.shp')
 
 # Create nonsense raster file to clip shapefile
 ras.back <- raster(extent(-76.4, -69.8, 36.85, 42.7),
-                   resolution = 1/360, #5 arc-second grids = 720, 10 = 360
+                   resolution = 1/1200, #3 arc-second grid = 1200, 5 = 720, 10 = 360
                    vals = 1,
                    crs = proj4string(midstates))
 
@@ -26,7 +26,7 @@ mem.crop <- SpatialPolygons(list(Polygons(list(Polygon(mem.crop)),
 # Create clipped raster from the shapefile-- Rasterize the water, drop the land
 ras.water <- mask(mask(ras.back, mem.crop, inverse = T),
                   midstates, inverse = T)
-
+writeRaster(ras.water, "ras_water_3AS.grd")
 rm(midstates, ras.back, mem.crop)
 
 # Transition matrix between raster cells
