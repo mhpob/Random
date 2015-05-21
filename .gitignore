@@ -42,5 +42,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Mike's RStudio files
+*.Rproj
+*.Rproj.user
+
 # Aris Files
 *files.xlsx
