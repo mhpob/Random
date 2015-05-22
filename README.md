@@ -1,7 +1,5 @@
 # ARIS
 Tracking progress - Identifying steps 
 
-- [x] Video into individual frames and extract # of frames per video 
-- [ ] Step 2...
-- [ ] Step 3...
-- [ ] Step 4...
+- [x] Video into individual frames
+- [ ] Image Enhancement
