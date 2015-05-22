@@ -1,6 +1,5 @@
 # ARIS
-We should put the steps that we identified in our chat here so we can
-keep track of our progress.
+Tracking progress - Identifying steps 
 
 - [x] Video into individual frames and extract # of frames per video 
 - [ ] Step 2...
