@@ -1,4 +1,8 @@
 # ARIS
-- [ ] http://stackoverflow.com/questions/24961127/ffmpeg-create-video-from-images
-- [x] http://ffmpeg.org/about.html
-- [ ] http://www.imagemagick.org/discourse-server/viewtopic.php?t=21190
+We should put what the steps that we identified in our chat here so we can
+keep track of our progress.
+
+- [x] Video into individual frames
+- [ ] Step 2...
+- [ ] Step 3...
+- [ ] Step 4...
