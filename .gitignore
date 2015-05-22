@@ -45,6 +45,7 @@ Temporary Items
 # Mike's RStudio files
 *.Rproj
 *.Rproj.user
+*.Rhistory
 
 # Aris Files
 *files.xlsx
