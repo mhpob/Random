@@ -1,6 +1,5 @@
 # ARIS
-We should put the steps that we identified in our chat here so we can
-keep track of our progress.
+Tracking Progress - Identifying Steps
 
 - [x] Video into individual frames
 - [ ] Image Enhancement 
