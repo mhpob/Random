@@ -1,5 +1,5 @@
 # ARIS
-We should put what the steps that we identified in our chat here so we can
+We should put the steps that we identified in our chat here so we can
 keep track of our progress.
 
 - [x] Video into individual frames
