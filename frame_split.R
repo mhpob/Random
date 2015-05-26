@@ -13,7 +13,7 @@ frame_split <- function(video, ff.loc = NULL, prefix = 'img'){
   }
 
   if(mpeg == "") warning('Cannot find FFmpeg!!')
-  if(probe == "") waring('Cannot find FFprobe!!')
+  if(probe == "") warning('Cannot find FFprobe!!')
 
   # Retrieve number of frames for naming
   frames <- system2(probe, paste(video, '-show_entries stream=nb_frames',
