@@ -3,7 +3,7 @@ turt <- turt[!grepl('\\.', as.character(turt$track)),]
 
 
 turt <- split(turt, turt$track)
-for(i in seq(1,length(turt),1)){
+for(i in seq(1, length(turt), 1)){
   turt[[i]]$number <- seq(1, dim(turt[[i]])[1], 1)
 }
 turt <- do.call(rbind.data.frame,turt)
@@ -22,17 +22,18 @@ map <- ggplot() + geom_polygon(data = mapdat, fill = 'darkgrey', color = 'black'
                         aes(long, lat, group = group)) +
   coord_map(xlim = c(-135, -78), ylim = c(-38, 12.5))
 
-hulls <- chull(x = turt[turt$number %in% seq(1,90,1), 'long'],
-               y = turt[turt$number %in% seq(1,90,1), 'lat'])
+hulls <- chull(x = turt[turt$number %in% seq(1, 120, 1), 'long'],
+               y = turt[turt$number %in% seq(1, 120, 1), 'lat'])
 
-jj <- turt[turt$number %in% seq(1,90,1),]
+jj <- turt[turt$number %in% seq(1, 120, 1),]
 
 
 saveVideo({
-  for (i in 1:90){
+  for (i in 1:120){
   plot <- map +
-    geom_point(data = turt[turt$number %in% seq(1,i,1),],
-               aes(x = long, y = lat, color = as.factor(track)))+
+    geom_point(data = turt[turt$number %in% seq(1, i, 1),],
+               aes(x = long, y = lat, color = as.factor(track))) +
+    labs(x = 'Longitude', y = 'Latitude') +
   theme(legend.position = 'none')
   print(plot)
   ani.pause()
@@ -43,7 +44,7 @@ saveVideo({
     print(plot)
     ani.pause()
   }
-  }, interval = 0.2, video.name = 'helenani.mp4',
+  }, interval = 0.2, video.name = 'helenani.wmv',
   ffmpeg = 'c:/ffmpeg/bin/ffmpeg.exe',
   ani.height = 720, ani.width = 1280,
   other.opts = "-b 300k")
