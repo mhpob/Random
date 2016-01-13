@@ -1,27 +1,68 @@
-CBP Water Quality Database(1984-present) CBP_WQDB 
-CBP Water Quality Database(1949-1982) CBI_WQDB 
-http://api.chesapeakebay.net/rest/DataHubRESTSrv/dhHelper.svc/getExtentData/WATER_BODIES/Water_Quality_Data/CBP_WQDB 
-
-library(XML)
-cbpurl <- xmlTreeParse('http://api.chesapeakebay.net/getWQWaterQuality.svc/WATER_BODIES/101,110,29,40,66,81,93/51/false/12311983/05212010')
-cbproot <- xmlRoot(cbpurl)
-cbp <- xmlSApply(cbproot, function(x) xmlSApply(x, xmlValue))
-
-# Change class
-cbpchar <- apply(cbp, 1, as.character)
-cbp_df <- data.frame(cbpchar, row.names = NULL,
-                     stringsAsFactors = F)
-cbp_df <- lapply(cbp_df, type.convert, na.strings = 'character(0)')
-cbp_df <- do.call(cbind.data.frame, cbp_df)
 
 
-# Sassafras 101
-#Susquehanna 110
-# Choptank 29
-# Elk 40
-# Nanticoke 66
-# Pax 81
-# Potomac 93
+CBPRip <- function(start = '1984-01-16', end = Sys.Date(), geo.attribute,
+                   geo.ids, params){
+  date.seq <- seq(as.Date(start), as.Date(end), by = '5 year')
+  
+  # Make sure end date is within sequence. If not, add it.
+  if(date.seq[length(date.seq)] < as.Date(end)){
+    date.seq <- c(date.seq, as.Date(end))
+  }
+  
+  # Make URLs.
+  urls <- NULL
+  for(i in seq(1, length(date.seq) - 1)){
+    urls <- c(urls,
+            paste('http://data.chesapeakebay.net/api.CSV/WaterQuality/WaterQuality',
+                  date.seq[i], date.seq[i + 1],
+                  '2,4,6/12,13,14,15,2,3,11,7,23,24,16',
+                  geo.attribute,
+                  paste(geo.ids, collapse = ','),
+                  paste(params, collapse = ','),
+                  sep = '/'))
+  }
+  
+  # This function just adds a progress bar. Pretty, but not important.
+  lapply_pb <- function(X, FUN, ...){
+    env <- environment()
+    pb_Total <- length(X)
+    counter <- 0
+    pb <- txtProgressBar(min = 0, max = pb_Total, style = 3)
+  
+    # wrapper around FUN
+    wrapper <- function(...){
+      curVal <- get("counter", envir = env)
+      assign("counter", curVal +1 ,envir=env)
+      setTxtProgressBar(get("pb", envir=env), curVal +1)
+      FUN(...)
+    }
+    res <- lapply(X, wrapper, ...)
+    close(pb)
+    res
+  }
+  
+  # Data has a footer which prevents class identification. This function removes
+  # the footer before class identification occurs.
+  read.csv_nofooter <- function(X){
+    data.loc <- url(X)
+    data <- suppressWarnings(textConnection(head(readLines(data.loc), -1)))
+    data <- read.csv(data, stringsAsFactors = F)
+    close(data.loc)
+    data
+  }
+  
+  # Use functions created above to import into list.
+  data <- lapply_pb(urls, read.csv_nofooter)
+  # Merge list into a data frame.
+  data <- do.call(rbind.data.frame, data)
+  data
+}
 
-API Loc:
-http://data.chesapeakebay.net/doc/Datahub_2011_REST_API.pdf
+
+start = '1984-01-16'
+end = Sys.Date()
+geo.attribute = 'Station'
+geo.ids = 1599
+params = c(21,31)
+
+data.<- CBPRip(start, end, geo.attribute, geo.ids, params)
