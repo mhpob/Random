@@ -1,4 +1,22 @@
-
+## Pull waater quality data from Chesapeake Bay Program's DataHub
+## http://data.chesapeakebay.net/WaterQuality
+## 
+## Inputs
+## start   start date in yyyy-mm-dd format. Default is first day of available
+##         data (1984-01-16).
+## end     end date in yyyy-mm-dd format. Default is today's date.
+## geo.attribute     Level of geographic aggregation.
+##                   "HUC8" = Hydrologic unit
+##                   "HUC12" = Small watershed
+##                   "FIPS" = County/City
+##                   "CBSeg2003" = Monitoring segment
+##                   "SegmentShed2009" = Monitoring segment/shed
+##                   "Station" = Monitoring station
+## geo.ids     vector of station IDs within provided geo.attribute
+## params    vector of parameter IDs
+## 
+## M. O'Brien  20160113
+## obrien@umces.edu
 
 CBPRip <- function(start = '1984-01-16', end = Sys.Date(), geo.attribute,
                    geo.ids, params){
@@ -58,11 +76,13 @@ CBPRip <- function(start = '1984-01-16', end = Sys.Date(), geo.attribute,
   data
 }
 
-
-start = '1984-01-16'
-end = Sys.Date()
-geo.attribute = 'Station'
-geo.ids = 1599
-params = c(21,31)
-
-data.<- CBPRip(start, end, geo.attribute, geo.ids, params)
+## Example usage:
+# st.date = '1987-02-20'
+# end.date = '2005-12-31'
+# level = 'Station'
+# stations = 1599
+# wq.variables = c(21,31)
+# 
+# data <- CBPRip(start = start.date, end = end.date,
+#                geo.attribute = level, geo.ids = stations,
+#                params = wq.variables)
