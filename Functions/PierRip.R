@@ -1,5 +1,5 @@
 # This function rips water quality data from the CBL Pier Storm Central Water Log site
-# http://stormcentral.waterlog.com/SiteDetails.php?a=88&site=2&pa=CBLPier
+# http://stormcentral.waterlog.com/SiteDetails.php?a=97&site=297&pa=CBLPier
 # between specified dates/times in ymd_hms format
 
 
@@ -19,7 +19,7 @@ cblpier <- function(stdate = '2015-03-31 00:00:00',
   range <- enddate - stdate
   
   url <- paste0('http://stormcentral.waterlog.com/xml/SiteDetailsSiteData.php?',
-                'Site=2&Acct=88&Start=', stdate, '&Range=', range)
+                'Site=297&Acct=97&Start=', stdate, '&Range=', range)
   
   xmltree <- readLines(url)
   
@@ -37,11 +37,11 @@ cblpier <- function(stdate = '2015-03-31 00:00:00',
   }
   
   # Drop empty samples
-  pierdata <- pierdata[rowSums(is.na(pierdata)) != 13,]
+  pierdata <- pierdata[rowSums(is.na(pierdata)) != 14,]
   
   # Formatting
   pierdata$Date <- mdy_hms(paste(pierdata$Date, pierdata$Time))
-  pierdata <- pierdata[, -2]
+  pierdata <- pierdata[, -c(1,3)]
   row.names(pierdata) <- NULL
   names(pierdata)[2:12] <- lapply(strsplit(names(pierdata)[2:12], '[.]'), '[', 2)
   
