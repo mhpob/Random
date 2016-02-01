@@ -10,6 +10,9 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+# Private Data
+ACTtrans.rda
+*-oauth
 # =========================
 # Operating System Files
 # =========================
