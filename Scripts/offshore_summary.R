@@ -26,14 +26,22 @@ n_dets_all <- dets %>%
 #   group_by(station) %>% 
 #   summarize(a = n_distinct(transmitter))
 
-n_dets_201512 <- dets %>% 
-  filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
-         date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>% 
+# n_dets_201512 <- dets %>% 
+#   filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
+#          date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>% 
+#   group_by(station) %>% 
+#   summarize(a = n_distinct(transmitter))
+
+n_dets_201602 <- dets %>% 
+  filter(date.local > lubridate::ymd('20151208', tz = "America/New_York"),
+         date.local <= lubridate::ymd('20160228', tz = "America/New_York")) %>% 
   group_by(station) %>% 
   summarize(a = n_distinct(transmitter))
 
 # Detections in wind energy area.
-species <- left_join(dets, ACTtrans, by = c('transmitter' = 'Tag.ID.Code.Standard'))
+load('ACTactive.rda')
+species <- left_join(data.frame(dets), ACTactive,
+                     by = c('transmitter' = 'Tag.ID.Code.Standard'))
 
 n_spec_all <- species %>% group_by(station, Common.Name) %>% 
   distinct(station, transmitter) %>% 
@@ -65,9 +73,16 @@ n_spec_all <- species %>% group_by(station, Common.Name) %>%
 #   distinct(station, transmitter) %>% 
 #   summarize(n = n())
 
-n_spec_201512 <- species %>% 
-  filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
-         date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>%
+# n_spec_201512 <- species %>% 
+#   filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
+#          date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>%
+#   group_by(station, Common.Name) %>% 
+#   distinct(station, transmitter) %>% 
+#   summarize(n = n())
+
+n_spec_201602 <- species %>% 
+  filter(date.local > lubridate::ymd('20151208', tz = "America/New_York"),
+         date.local <= lubridate::ymd('20160228', tz = "America/New_York")) %>%
   group_by(station, Common.Name) %>% 
   distinct(station, transmitter) %>% 
   summarize(n = n())
@@ -102,9 +117,17 @@ PI_all <- species %>%
 #   distinct(transmitter) %>%
 #   summarize(n = n())
 
-PI_201512 <- species %>% 
-  filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
-         date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>%
+# PI_201512 <- species %>% 
+#   filter(date.local > lubridate::ymd('20150918', tz = "America/New_York"),
+#          date.local <= lubridate::ymd('20151209', tz = "America/New_York")) %>%
+#   group_by(Common.Name, Release.Location, Primary.Researcher,
+#            Primary.Tagging.Organization) %>% 
+#   distinct(transmitter) %>%
+#   summarize(n = n())
+
+PI_201602 <- species %>% 
+  filter(date.local > lubridate::ymd('20151208', tz = "America/New_York"),
+         date.local <= lubridate::ymd('20160228', tz = "America/New_York")) %>%
   group_by(Common.Name, Release.Location, Primary.Researcher,
            Primary.Tagging.Organization) %>% 
   distinct(transmitter) %>%
