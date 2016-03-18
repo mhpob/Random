@@ -1,6 +1,6 @@
 library(TelemetryR)
 
-ACTupdate()
+ACTupdate(local.ACT = 'ACTactive.rda')
 
 false.pos <- c("A69-1303-15268", "A69-1303-21996", "A69-1303-55828",
                "A69-1601-13358", "A69-1601-14295", "A69-1601-18147",
