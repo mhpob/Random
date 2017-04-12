@@ -33,4 +33,11 @@ Icon
 auth.json
 phantomjsdriver.log
 ASP.NET_SessionId=zbfa3gixldfeyouurykag51a; _ga=GA1.2.1636856434.1432836119
+
 *.rda
+*.xls
+*.xlsx
+*.mp4
+*.grd
+*.gri
+*.csv
