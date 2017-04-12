@@ -1,0 +1,377 @@
+---
+title: Determining Natal Origin for Bluefin Tuna caught in the North West Atlantic
+  Ocean
+author: "A.R. Hanke" modified by L.Kerr
+date: '2014-11-07' updated Nov 5, 2015
+output: html_document
+---
+```{r, echo=FALSE,message=FALSE}
+# Requirements
+require(gdata)
+require(plyr)
+require(ggplot2)
+require(randomForest)
+require(KernSmooth)
+require(spatstat)
+require(party)
+library(car)
+library(maptools)
+```
+
+# Introduction
+This document chronicles the process by which otoliths collected from the heads of Bluefin tuna can be used to determine the natal origin of individual fish.
+
+## Data
+```{r,echo=FALSE}
+# Data Acquisition
+# Read Sample Data
+natal<-read.csv("I:/lKerr/GMRI/Tuna/Otolith/Data/Population Assignment/Kerr data.csv", header =T)  
+names(natal)
+natal = natal[!is.na(natal$d18O),]
+# Read Baseline data
+base<-read.csv("I:/lKerr/GMRI/Tuna/Otolith/Data/Population Assignment/baseline.csv", header =T)   #directory where csv 
+names(base)
+```
+  
+## Exploratory Plots
+1. Fluctuations in the carbon isotope estimates in the sample over years. The yearly aggregation combines data from several regions that do not exist in all years.
+```{r, echo=T,warning=FALSE,message=FALSE}
+# Change in delta c13 over years (confounded with Region)
+ggplot(subset(natal,!is.na(d13C))) + geom_boxplot(aes(x=factor(Year),y=abs(d13C)))
+# Change in delta O18 over years (confounded with Region)
+ggplot(subset(natal,!is.na(d18O))) + geom_boxplot(aes(x=factor(Year),y=abs(d18O)))
+```
+
+2. The distribution of the oxygen isotope estimates from the baseline relative to the distribution in the sample 
+```{r, echo=T,warning=FALSE,message=FALSE}
+# Distribution of baseline delta O18 relative to sample values
+ggplot(subset(natal,!is.na(d18O))) + geom_histogram(aes(x=d18O),alpha=.5)+ 
+  geom_histogram(data=base,aes(x=-1*d18O,fill=Populations),alpha=.5)
+```
+
+3. Time trends in length of fish sampled. The yearly variation is confounded with regional variation where regions may not be sampled in all years.
+```{r, echo=T,warning=FALSE,message=FALSE}
+# Change in curved fork length over years (confounded by Region)
+ggplot(subset(natal,!is.na(d18O))) + geom_boxplot(aes(x=factor(Year),y=CFL))
+```
+
+4. The relationship between carbon isotope estimates and the curved forklength of a fish.
+```{r, echo=T,warning=FALSE,message=FALSE}
+# Relationship between isotope values and curved fork length
+ggplot(subset(natal,!is.na(d18O))) + geom_smooth(aes(x=d13C,y=CFL))+geom_point(aes(x=d13C,y=CFL))
+```
+
+5. The relationship between oxygen isotope estimates and the curved forklength of a fish.
+```{r, echo=T,warning=FALSE,message=FALSE}
+ggplot(subset(natal,!is.na(d18O))) + geom_smooth(aes(x=d18O,y=CFL))+geom_point(aes(x=d18O,y=CFL))
+```
+
+6. Two dimensional kernal density plots of the baseline data showing the overlap between eastern and western origin baseline data.
+```{r, echo=T,warning=FALSE,message=FALSE}
+# Kernal density contours for the baseline data 
+ggplot(base) + geom_density2d(aes(y=d13C, x=d18O, col=Populations)) + geom_point(aes(y=d13C, x=d18O, col=Populations))
+```
+
+## Classification Model
+The majority of the data is associated with eastern origin samples and, consequently, this becomes the majority class. If we do not correct for this bias it results in better fit for the majority class. 
+```{r}
+set.seed(71)
+base.rf <- randomForest(Populations ~ d13C + d18O , data=base, importance=TRUE,
+                        proximity=TRUE,oob.prox=T,classwt=c(1,2))
+print(base.rf)
+```
+
+The greater importance of the oxygen isotope data in the fitting (`r round(importance(base.rf), 2)`) is further emphasized by the class weighting.
+```{r,echo=F}
+## Look at variable importance:
+round(importance(base.rf), 2)
+```
+
+A pairs plot show the relationship between the primary variables and the MDS axes.
+```{r}
+## Do MDS on 1 - proximity:
+base.mds <- cmdscale(1 - base.rf$proximity, eig=TRUE)
+op <- par(pty="s")
+pairs(cbind(base[,1:2], base.mds$points), cex=0.6, gap=0,
+      col=c("red", "green")[as.numeric(base$Populations)],
+      main="Base Data: Predictors and MDS of Proximity Based on RandomForest")
+par(op)
+print(base.mds$GOF)
+```
+
+To compensate for the emphasis on the majority class, equal sample sizes are specified. There is no big improvement over the previous model except that the class errors are now more equal.
+```{r}
+## Stratified sampling: draw 40 and 40 of each class to grow each tree.
+## Weighted in favour of d18O
+
+(base.rf2 <- randomForest(Populations ~ d18O + d13C , base,sampsize=c(100, 100),classwt=c(1,2)))
+
+print(base.rf2)
+
+cutoff = c(.47,.53)
+
+predictions = cbind(base,Origin=predict(base.rf2,newdata = base,type="response",cutoff=cutoff))
+xtabs(~Populations+Origin,predictions)
+```
+
+## Predictions
+Using mixed stock samples, we estimate the natal origin. Some manipulations are required to ensure that the naming of variables is identical to those used in the trial data and the sign is also changed. *I am not sure why the data is transformed in this way in the baseline data.*
+```{r}
+# Test data 
+newdata = natal[,c("d13C" , "d18O")]
+```
+
+```{r}
+
+cutoff = c(.526,.474)
+predictions = cbind(natal,Origin=predict(base.rf2,newdata = newdata,type="response",cutoff=cutoff))
+predictionsP = cbind(natal,Origin=predict(base.rf2,newdata = newdata,type="prob",cutoff=cutoff))
+# update database with results
+d = merge(predictions,predictionsP)
+e = merge(natal,d, all.x=T)
+write.csv(e, file="Indiv_assign.csv")
+base<-write.csv(e,file="I:/lKerr/GMRI/Tuna/Otolith/Data/Indiv_assign_Kerrv4.csv")  
+
+#write.csv(e, file="Orignial & Revised_Otolith_Database_ARH.csv")
+#save(base,base.rf2,predictions,predictionsP,base,file="RFmodels")
+```
+
+Some results from the best *best* model.
+```{r,echo=FALSE}
+a=round(xtabs(Origin=="East"~Year+Geographical.Region,predictions)/xtabs(~Year+Geographical.Region,predictions),2)
+b=round(xtabs(Origin=="West"~Year+Geographical.Region,predictions)/xtabs(~Year+Geographical.Region,predictions),2)
+a
+b
+a = data.frame(a, Stock= "East")
+b = data.frame(b, Stock= "West")
+c = rbind(a,b)
+c = subset(c, !is.na(Freq))
+#c$Year = as.numeric(as.character(c$Year))
+names(c)[3] = "Rate"
+xtabs(Rate~Geographical.Region+Year,subset(c,Stock=="East"),sparse=T)
+ggplot(c)+geom_bar(aes(x=Year,y=Rate,fill=Stock),stat="identity")+facet_grid(Region~.)
+```
+
+The proportions by area within region and year.
+```{r,echo=FALSE}
+a = data.frame(ftable(round(xtabs(Origin=="East"~Region+Area_Sampled+Year,predictions,drop.unused.levels = T)/xtabs(~Region+Area_Sampled+Year,predictions,drop.unused.levels = T),3)))
+a = subset(a, !is.na(Freq))
+a$Location = with(a,paste(Region,Area_Sampled,sep=":"))
+xtabs(Freq~Location+Year,a,sparse=T)
+```
+
+Partial dependence plots
+```{r}
+par(mfrow=c(1,2),mar=c(5.1,1.1,1.1,1.1))
+# partial dependence on d18O
+partialPlot(base.rf2,base,d18O,which.class="West",col='red',add=F,
+            xlab="Oxygen isotope ratio",main="")
+partialPlot(base.rf2,base,d18O,which.class="East",col='blue',add=T)
+legend("bottomleft",c("East","West"),col=c("blue","red"),lty=1,bty="n")
+```
+
+```{r}
+# partial dependence on d13C
+partialPlot(base.rf2,base,d13C,which.class="West",col='red',add=F,
+            xlab="Carbon isotope ratio",main="")
+partialPlot(base.rf2,base,d13C,which.class="East",col='blue',add=T)
+legend("bottomleft",c("East","West"),col=c("blue","red"),lty=1,bty="n")
+par(mfrow=c(1,1),mar=c(5.1,4.1,4.1,2.1))
+```
+
+Post hoc analysis of the relationship between curved fork length and the predicted origin of the fish for each majaor location.
+```{r}
+predictionsP$Location = as.character(predictionsP$Region)
+predictionsP$Location = with(predictionsP, ifelse(Area_Sampled=="Virginia","Virginia",Location))
+predictionsP$Location = with(predictionsP, ifelse(Area_Sampled=="New England","New England",Location))
+ggplot(data=subset(predictionsP,!is.na(CFL_cm)))+geom_boxplot(aes(x=cut(CFL_cm,5),y=Origin.East))+facet_wrap(~Location) + theme(axis.text.x  = element_text(angle=90, vjust=0.5))+xlab("Curved Fork Length (cm)")+ylab("Probability of Eastern Origin")
+# reference age and isotope value trends
+ggplot(data=subset(predictionsP,!is.na(Ref_Final_Age)))+geom_boxplot(aes(x=cut(Ref_Final_Age,c(4,12,36)),y=d18O))+facet_wrap(~Location) + theme(axis.text.x  = element_text(angle=90, vjust=0.5))+xlab("Age")+ylab("d18O")+geom_boxplot(data=base,aes(y=d18O,x="Base"))
+#
+ggplot(data=subset(predictionsP,!is.na(Ref_Final_Age)))+geom_boxplot(aes(x=cut(Ref_Final_Age,c(4,12,36)),y=d13C))+facet_wrap(~Location) + theme(axis.text.x  = element_text(angle=90, vjust=0.5))+xlab("Age")+ylab("d13C")+geom_boxplot(data=base,aes(y=d13C,x="Base"))
+
+
+```
+
+Post hoc analysis of the relationship between final age and the predicted origin of the fish for each major location.
+```{r}
+ggplot(data=subset(predictionsP,!is.na(Ref_Final_Age)))+geom_boxplot(aes(x=cut(Ref_Final_Age,c(4,8,12,16,20,36)),y=Origin.East))+facet_wrap(~Location) + theme(axis.text.x  = element_text(angle=90, vjust=0.5))+xlab("Direct Age")+ylab("Probability of Eastern Origin")
+```
+
+Class probability by Location
+```{r}
+ggplot(data=subset(predictionsP,!is.na(CFL_cm)))+geom_density(aes(x=Origin.East)) + theme(axis.text.x  = element_text(angle=90, vjust=0.5))+ylab("Density")+xlab("Probability of Eastern Origin")+facet_wrap(~Location)
+round(xtabs(Origin.East~Location+Year, predictionsP,sparse=T)/xtabs(~Location+Year, predictionsP,sparse=T),2)
+```
+
+Looking for a trend in isotope values within groups.
+```{r}
+base$Origin = base$Populations
+ggplot(subset(cbind(predictions,predictionsP),!is.na(d18O))) + geom_boxplot(aes(x=factor(Year),y=d18O))+facet_wrap(~Origin)+geom_boxplot(data=base,aes(y=d18O,x="Base"))+xlab("Year")
+#
+ggplot(subset(cbind(predictions,predictionsP),!is.na(d13C))) + geom_boxplot(aes(x=factor(Year),y=d13C))+facet_wrap(~Origin)+geom_boxplot(data=base,aes(y=d13C,x="Base"))+xlab("Year")
+#
+ggplot(subset(cbind(predictions,predictionsP),!is.na(d13C))) + geom_boxplot(aes(x=factor(Year),y=d13C))+geom_boxplot(data=base,aes(y=d13C,x="Base"))+xlab("Year")
+#
+ggplot(subset(cbind(predictions,predictionsP),!is.na(d18O))) + geom_boxplot(aes(x=factor(Year),y=d18O))+geom_boxplot(data=base,aes(y=d18O,x="Base"))+xlab("Year")
+```
+```
+
+more results ...
+```{r,message=FALSE}
+ggplot(base) + geom_density2d(aes(y=d13C, x=d18O, col=Populations)) + geom_point(data=predictions,aes(y=d13C, x=d18O, col=Origin))
+ggplot(base) + geom_density2d(aes(y=d13C, x=d18O, col=Populations),bandwidth=c(0.25, 0.25),bins=2) + geom_point(data=predictions,aes(y=d13C, x=d18O, col=Origin))+facet_wrap(~Region)
+ggplot(cbind(predictionsP,Origin=predictions$Origin))+geom_smooth(aes(x=Ref_Final_Age,y=Origin.West))+geom_jitter(aes(x=Ref_Final_Age,y=Origin.West,col=Region),size=3.5)+facet_wrap(~Region)
+```
+
+Confidence ellipse
+```{r}
+plot.new()
+a=with(base,dataEllipse(d18O, d13C,Populations,levels=c(0.68, 0.95),draw=F))
+a=data.frame(a)
+b=with(natal,dataEllipse(d18O, d13C,levels=c(0.68, 0.95),draw=F))
+b=data.frame(b)
+ggplot(a)+geom_polygon(aes(x=East.0.68.x,y=East.0.68.y),col="red",fill="red", alpha=0.1)+geom_polygon(aes(x=East.0.95.x,y=East.0.95.y),col="red",fill="red", alpha=0.1)+geom_polygon(aes(x=West.0.68.x,y=West.0.68.y),col="blue",fill="blue", alpha=0.1)+geom_polygon(aes(x=West.0.95.x,y=West.0.95.y),col="blue",fill="blue", alpha=0.1)+geom_point(data=natal,aes(d18O, d13C))+ylab("d13C")+xlab("d18O")+geom_polygon(data=b,aes(x=X0.68.x,y=X0.68.y),col="green",fill="green", alpha=0.1)+geom_polygon(data=b,aes(x=X0.95.x,y=X0.95.y),col="green",fill="green", alpha=0.1)
+```
+
+### Function for simulating a bivariate normal distribution
+One aspect of the mixing estimation we can investigate is the sensitivity of the outcome to the variabilty in the measurement of d18O and d13C. The measurement of these isotope ratios returns a mean value and a standard deviation. If we assume some bivariate normal errors around these estimates, we can sample from it. The code below is a function which allows us to do this knowing the mean, standard deviation of the variates and their correlation.
+```{r}
+rbivariate <- function(RowID=NULL,mean.x = 70, sd.x=3, mean.y=162, sd.y=14, r=.50, iter=100) {
+  z1 <- rnorm(iter)
+  z2 <- rnorm(iter)
+  x <- sqrt(1-r^2)*sd.x*z1 + r*sd.x*z2 + mean.x
+  y <- sd.y*z2 + mean.y
+  return(data.frame(RowID,x,y))
+}
+# An alternative method which produced an error due to negative eigen values
+# with(natalVar[1,],mvrnorm(n = 10, mu=c(d13C,d18O),
+#       Sigma=matrix(c(d13C.std^2,rep(SampleCov,2),d18O.std^2),2,2,byrow=T),
+#       tol = 1e-6, empirical = T, EISPACK = FALSE))
+```
+
+For each of the original samples, 50 new estimtes were drawn to create a bivariate sampling distribtuion.
+```{r, echo=FALSE, warning=FALSE}
+# Create a separate sample data set with resamples from a normal distribution
+natalVar = subset(natal, !is.na(d18O_VPDB), select=c("New_Sample","d13C_VPDB","C_std_dev","d18O_VPDB","O_std_dev"))
+  names(natalVar) = c("RowID","d13C","d13C.std","d18O","d18O.std")
+# Correlation
+SampleCor = with(natalVar,cor(d13C,d18O))
+# Obtain the bivariate sampling sdistribution
+SimData = apply(natalVar,1, function(x) rbivariate(RowID=x[1],mean.x=x[2],sd.x=x[3],mean.y=x[4],sd.y=x[5],r=SampleCor,iter=50))
+# Convert the list to a dataframe
+SimData = ldply(SimData,data.frame)
+  names(SimData) = c("RowID","New_Sample","d13C","d18O")
+```
+
+The following plot shows the bivariate sampling distribution around each of the original carbon and isotope estimates. The measurement error of each variable has profound effects on the shape of these bivariate distributions and the classification reflects both the shape and extent of these distributions.
+
+```{r, echo=FALSE}
+# Relationship of simulated data to baseline contours
+ggplot(base) + geom_density2d(aes(y=d13C, x=d18O, col=Populations),
+        bandwidth=c(0.25, 0.25),bins=4) + geom_point(data=SimData, aes(x=-d18O,y=-d13C),alpha=.1)
+```
+
+### Estimated Natal Origin of Sampling Distribution
+The test data from the bivariate normal sampling distribution of each observation (SimData) is classified using the same classifier used on the sample data.
+```{r}
+SimData$d13C = -1*SimData$d13C
+SimData$d18O = -1*SimData$d18O
+cutoff = c(.65,.35)
+Spredictions = cbind(SimData,Origin=predict(base.rf2,newdata = SimData,type="response",cutoff=cutoff))
+SpredictionsP = cbind(SimData, Origin=predict(base.rf2,newdata = SimData,type="prob",cutoff=cutoff))
+```
+
+The predicted class of the bivariate sampling data is shown below.
+```{r,messages=F, echo=T, warnings=F}
+ggplot(base) + geom_density2d(aes(y=d13C, x=d18O, col=Populations)) + geom_point(data=Spredictions,aes(y=d13C, x=d18O, col=Origin),aplha=.1)
+```
+
+Here we create some new variables using the aggregated predictions from the bivariate sampling distribution data. Predictions of class for the sampling distribution of each original estimate are aggregated to the proportion classed "East". Predictions of the probability of being "East" or "Western" in origin are aggregated through averaging. These aggregated estimates are merged with the estimates of origin and probability of origin for the original samples.
+```{r,message=FALSE}
+a = aggregate(Origin~New_Sample,data=Spredictions, function(x) sum(x=="East")/length(x))
+    a$New_Sample = as.numeric(a$New_Sample)
+    a = a[order(a$New_Sample),]
+b = aggregate(cbind(Origin.East,Origin.West)~New_Sample,data=SpredictionsP, function(x,y) mean(x))
+    b$New_Sample = as.numeric(b$New_Sample)
+    b = b[order(b$New_Sample),]
+    SimData$New_Sample = as.numeric(SimData$New_Sample)
+
+c = merge(SpredictionsP,predictionsP[,c("New_Sample","Origin.West","Region")], by="New_Sample",all.x=T)
+d = merge(Spredictions,predictions[,c("New_Sample","Origin","Year","Region")], by="New_Sample",all.x=T)
+round(xtabs(Origin.x=="East"~Year+Region,d)/xtabs(~Year+Region,d),2)
+```
+
+The relationship between the probability of class origin of the original observation and its sampling distribution is shown below with the points coloured by the class predicted for the sampling distribution.
+```{r,message=FALSE}
+# Relationship between mean and simulated classification predictions
+ggplot(c) + geom_point(aes(y=Origin.West.x,x=Origin.West.y,col=d$Origin.x))+
+  xlab("Probability of Western Origin for the Mean") + ylab("Probability of Western Origin for the Sample Distribution")
+```
+
+The difference in the probability of class origin of the original samples and sampling distribution of those samples is plotted against the predicted probability of being "Eastern" in origin. The colour of the points reflects the origin predicted for the original sample.
+```{r,message=F}
+# The average origin of the samples versus the probability assigned by the classifier
+ggplot(predictionsP) + geom_jitter(aes(x=a$Origin, y=Origin.East-a$Origin,col=predictions$Origin))+xlab("prob")
+```
+
+```{r,message=FALSE}
+# predictions involving the trial (baseline) data
+cutoff = c(.65,.35)
+predictions =data.frame(base,Origin=predict(base.rf2,newdata = base,type="response",cutoff=cutoff))
+predictionsP = data.frame(base,Origin=predict(base.rf2,newdata = base,type="prob",cutoff=cutoff))
+proximity = predict(base.rf2,newdata = base,type="response",cutoff=cutoff,proximity=T)$proximity
+proximity = data.frame(Populations=predictions$Populations,Origin=predictions$Origin,
+           pxEast=apply(proximity,1,function(x) sum(x[predictions$Origin=="East"])/sum(x>0) ),
+           pxWest=apply(proximity,1,function(x) sum(x[predictions$Origin=="West"])/sum(x>0) ),
+           Origin.West=predictionsP$Origin.West)
+proximity$pxThresh = proximity$pxEast>=.1
+proximity$pxRatio = with(proximity, pxEast/pxWest)
+ggplot(proximity,aes(x=pxEast,y=pxWest,col=Populations))+geom_point()+facet_wrap(~Origin)
+ggplot(proximity,aes(x=pxWest, fill=Populations))+geom_dotplot(position="stack")
+ggplot(cbind(predictionsP,Origin=predictions$Origin))+geom_dotplot(aes(x=Origin.West,fill=Populations))
+```
+
+***
+# Other Investigations
+
+```{r,message=FALSE}
+
+# PARTY!
+base.crf = cforest(Populations ~ d13C + d18O, data=base, control = cforest_unbiased(mtry = 1))
+base.mds <- cmdscale(1 - proximity(base.crf), eig = TRUE)
+op <- par(pty="s")
+pairs(cbind(base[,1:2], base.mds$points), cex = 0.6, gap = 0,
+      col = c("red", "green")[as.numeric(base$Populations)],
+      main = "Otolith Data: Predictors and MDS of Proximity Based on cforest")
+par(op)
+
+table(base$Populations,predict(base.crf,OOB=T))
+
+#KERNSMOOTH
+x.east = subset(base, Populations=="East",select=c(d18O,d13C))
+x.west = subset(base, Populations=="West",select=c(d18O,d13C))
+est.east = bkde2D(x.east, bandwidth=c(0.25, 0.25))
+est.west = bkde2D(x.west, bandwidth=c(0.25, 0.25))
+with(est.east,contour(x1, x2, fhat, add=F, nlevels=4, xlim=c(-2,0)))
+with(est.west,contour(x1, x2, fhat, add=T, nlevels=4,col="red"))
+# overlay base
+points(x.east,col='black')
+points(x.west,col='red')
+# or overlay predictions
+with(subset(predictions,Origin=="East"),points(d18O,d13C))
+with(subset(predictions,Origin=="West"),points(d18O,d13C,col='red'))
+
+#Planar point pattern
+X.east = ppp(x.east[,1],x.east[,2], c(-3,0),c(-10,-7), marks=rep('East',length(x.east[,1])))
+X.west = ppp(x.west[,1],x.west[,2], c(-3,0),c(-10,-7), marks=rep('West',length(x.west[,1])))
+plot(density(X.east,bw.diggle))
+plot(density(X.west,bw.diggle))
+
+X.both = ppp(c(x.east[,1],x.west[,1]), c(x.east[,2],x.west[,2]),
+             c(-3,0),c(-10,-7), marks=factor(c(rep('East',length(x.east[,1])),
+                                        rep('West',length(x.west[,1])))) )
+p = relrisk(X.both)
+plot(p)
+plot(eval.im(p>0.5))
+```
