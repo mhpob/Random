@@ -5,7 +5,7 @@ mack.data <- read.csv('alldata2.csv', na.strings = 'n/a')
 # names(mack.data)
 
 class.func <- function(data, year_class, age, country = 'US'){
-  # Build random forest model using baseline data set
+  # Build random forest model using baseline data (age-1 fish of a given year class)
   baseline <- filter(data, Yearclass == year_class, Age == 1)
   baseline$Country <- droplevels(baseline$Country)
   
@@ -15,7 +15,7 @@ class.func <- function(data, year_class, age, country = 'US'){
   # Use random forest model to classify age/yearclass subset
   to.classify <- filter(data, Age == age, Yearclass == year_class,
                         Country %in% country)
-  # Nomincal classification (>50%)
+  # Nominal classification (>50%)
   Classification <- predict(rf.model, newdata = to.classify, type = "response")
   # Probability 
   prob <- predict(rf.model, newdata = to.classify, type = "prob")
@@ -40,7 +40,7 @@ colnames(class) <- c('age', 'year_class')
 
 # We can use a standard loop
 all.data <- NULL
-for(i in seq(1, 7, 1)){
+for(i in seq(1, dim(class)[1], 1)){
   temporary <- class.func(mack.data,
                           year_class = class[i, 2], age = class[i, 1])
   all.data <- rbind(all.data, temporary)
