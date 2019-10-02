@@ -83,6 +83,6 @@ CBPRip <- function(start = '1984-01-16', end = Sys.Date(), geo.attribute,
 # stations = 1599
 # wq.variables = c(21,31)
 # 
-# data <- CBPRip(start = start.date, end = end.date,
+# data <- CBPRip(start = st.date, end = end.date,
 #                geo.attribute = level, geo.ids = stations,
 #                params = wq.variables)
