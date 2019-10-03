@@ -1,0 +1,96 @@
+---
+title: "Mackerel Random Forest code"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+```
+
+## Mackerel classification through Random Forest
+This function utilizes the randomForest R package (Liaw and Wiener 2002). Data are those collected in Secor 2017; values are country, subregion, and year of capture, as well as calculated age, d18O, and d13C values.
+
+```{r}
+library(randomForest)
+
+mack.data <- read.csv('scripts/mackerel/alldata2.csv', na.strings = 'n/a')
+head(mack.data)
+```
+
+Separate random forest models are built using age-1 fish from the 1998, 1999, or 2000 year class.
+
+```{r}
+baseline_1998 <- mack.data[mack.data$Yearclass == 1998 & mack.data$Age == 1,]
+baseline_1998$Country <- droplevels(baseline_1998$Country)
+
+rf_1998 <- randomForest(Country ~ d18O, data = baseline_1998, ntree = 10000,
+                           importance = TRUE, proximity = TRUE, oob.prox = T)
+rf_1998
+```
+
+Classification error varies according to origin and year class. Using the trained random forest models, origin of older fish can be predicted. Here, we classify age-3 fish from the 1998 year class.
+
+```{r}
+to.classify <- mack.data[mack.data$Age == 3 &
+                           mack.data$Yearclass == 1998,]
+
+# Nominal classification (>50%)
+classification <- predict(rf_1998, newdata = to.classify, type = "response")
+
+# Probability 
+prob <- predict(rf_1998, newdata = to.classify, type = "prob")
+
+head(cbind(to.classify, classification, prob))
+```
+
+The operations can be combined into a single function.
+
+```{r}
+class.func <- function(data, year_class, age, country = 'US'){
+  # Build random forest model using baseline data (age-1 fish of a given year class)
+  baseline <- data[data$Yearclass == year_class & data$Age == 1,]
+  baseline$Country <- droplevels(baseline$Country)
+  
+  #Train the Random Forest model
+  rf.model <- randomForest(Country ~ d18O + d13C, data = baseline, ntree = 10000,
+                           importance = TRUE, proximity = TRUE, oob.prox = T)
+  
+  # Use trained random forest model to classify age/yearclass/country subset
+  to.classify <- data[data$Age == age &
+                        data$Yearclass == year_class &
+                        data$Country %in% country,]
+  
+  # Nominal classification (>50%)
+  Classification <- predict(rf.model, newdata = to.classify, type = "response")
+  
+  # Probability 
+  prob <- predict(rf.model, newdata = to.classify, type = "prob")
+  
+  cbind(to.classify, Classification, prob)
+}
+
+age3_1998 <- class.func(mack.data, 1998, 3)
+head(age3_1998)
+```
+
+This allows multiple ages and year-classes to be analyzed simultaneously.
+
+
+```{r}
+class <- matrix(c(2, 1998,
+                  2, 1999,
+                  2, 2000,
+                  3, 1998,
+                  3, 2000,
+                  4, 1999,
+                  5, 1998), ncol = 2, byrow = T)
+colnames(class) <- c('age', 'year_class')
+
+all.data <- apply(class, MARGIN = 1,
+                  function(x) class.func(mack.data, year_class = x['year_class'],
+                                                   age = x['age']))
+all.data <- do.call(rbind, all.data)
+
+head(all.data)
+```
+

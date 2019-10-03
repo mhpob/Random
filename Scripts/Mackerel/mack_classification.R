@@ -4,13 +4,13 @@ library(randomForest); library(dplyr)
 mack.data <- read.csv('alldata2.csv', na.strings = 'n/a')
 # names(mack.data)
 
-class.func <- function(data, year_class, age, country = 'US'){
+class.func <- function(data, year_class, age, country = 'CAN'){
   # Build random forest model using baseline data (age-1 fish of a given year class)
   baseline <- filter(data, Yearclass == year_class, Age == 1)
   baseline$Country <- droplevels(baseline$Country)
   
-  rf.model <- randomForest(Country ~ d18O + d13C, data = baseline,
-                           importance = TRUE, proximity = TRUE, oob.prox = T)
+  rf.model <- randomForest(Country ~ d18O + d13C, data = baseline, ntree = 10000,
+                           importance = T, proximity = T, oob.prox = T)
   
   # Use random forest model to classify age/yearclass subset
   to.classify <- filter(data, Age == age, Yearclass == year_class,
@@ -56,3 +56,35 @@ all.data <- do.call(rbind, all.data)
 
 
 write.csv(all.data, 'mackerel_classification.csv', row.names = F)
+
+
+
+
+
+
+
+library(ggplot2); library(dplyr)
+ggplot()+
+  geom_boxplot(data = all.data,
+              aes(x = Subregion, y = d18O, fill = Classification), outlier.size = 0)+
+  geom_point(data = all.data,
+              aes(x = Subregion, y = d18O, fill = Classification),
+             position = position_jitterdodge())+
+  labs(title = '', subtitle = 'Canadian origin') +
+  theme_bw()
+    
+
+
+
+
+baseline <- filter(mack.data, Age == 1, Yearclass == 2000)
+baseline$Country <- droplevels(baseline$Country)
+
+rf.model <- randomForest(Country ~ d18O, data = baseline, ntree = 10000,
+                         importance = TRUE, proximity = TRUE, oob.prox = T)
+rf.model
+
+
+
+to.classify <- filter(mack.data, Age == 2, Yearclass == 1999,
+                      Country %in% 'US')

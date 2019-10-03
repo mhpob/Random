@@ -2,19 +2,11 @@ library(TelemetryR)
 
 ACTupdate(local.ACT = 'ACTactive.rda')
 
-false.pos <- c("A69-1303-15268", "A69-1303-21996", "A69-1303-55828",
-               "A69-1601-13358", "A69-1601-14295", "A69-1601-18147",
-               "A69-1601-20794", "A69-1601-21435", "A69-1601-25631",
-               "A69-1601-27179", "A69-1601-31594", "A69-1601-37119",
-               "A69-1601-41805", "A69-1601-43368", "A69-1601-43862",
-               "A69-1601-60533", "A69-1601-64288", "A69-1601-9185",
-               "A69-1602-22686", "A69-1602-23019", "A69-1602-46762",
-               "A69-1602-54302", "A69-1602-64173", "A69-1602-64407",
-               "A69-9001-26563", "A69-9001-65126")
-
 # Tag "A69-9001-26563" is MD DNR's test transmitter.
 
 unid <- ACTsplit('p:/obrien/biotelemetry/detections', 'ACTactive.rda',
                  my.trans = paste0('A69-1601-', seq(25434,25533,1)),
-                 false.det = false.pos, write = F, start = '20160101',
-                 out = 'p:/obrien/biotelemetry')
+                 write = F, start = '20160101')
+
+UNIDprep(unid, directory = 'p:/obrien/biotelemetry/detections',
+         out = 'c:/users/secor/desktop')

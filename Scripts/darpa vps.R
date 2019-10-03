@@ -14,7 +14,7 @@ bear2latlon <- function(lat, long, dist, bearing, radians = F){
   long2 <- long + atan2(sin(bearing) * sin(dist / r) * cos(lat),
                           cos(dist / r) - sin(lat) * sin(lat2))
   
-  output <- c(lat2, long2)
+  output <- cbind(lat2, long2)
   
   if(radians == F){
     output <- output * (180/pi)
@@ -22,13 +22,29 @@ bear2latlon <- function(lat, long, dist, bearing, radians = F){
   return(output)
 }
 
-
-center_line <- lapply(c(250, 150, 50, -50, -150, -250),
+# 100m spacing
+la_line <- lapply(c(350, 250, 150, 50, -50, -150, -250),
                       function(x) bear2latlon(38.223405, -74.756277, x, 300))
-south_line <- lapply(center_line[2:6],
+west_line <- lapply(la_line[3:7],
                      function(x) bear2latlon(x[1], x[2], 100, 240))
-north_line <- lapply(center_line[2:6],
+east_line <- lapply(la_line[3:7],
                      function(x) bear2latlon(x[1], x[2], 100, 360))
 
 
+# 150m spacing
+la_line_150 <- lapply(c(375, 225, 75, -75, -225, -375),
+                  function(x) bear2latlon(38.223405, -74.756277, x, 300))
+west_line_150 <- lapply(la_line_150[2:6],
+                    function(x) bear2latlon(x[1], x[2], 150, 240))
+east_line_150 <- lapply(la_line_150[2:6],
+                    function(x) bear2latlon(x[1], x[2], 150, 360))
+
+
+# 200m spacing
+la_line_200 <- lapply(c(500, 300, 100, -100, -300, -500),
+                      function(x) bear2latlon(38.223405, -74.756277, x, 300))
+west_line_200 <- lapply(la_line_200[2:6],
+                        function(x) bear2latlon(x[1], x[2], 200, 240))
+east_line_200 <- lapply(la_line_200[2:6],
+                        function(x) bear2latlon(x[1], x[2], 200, 360))
 

@@ -1,0 +1,73 @@
+---
+title: "VR2C Communication and Output with R"
+output:
+  html_document:
+    df_print: paged
+---
+
+After installing the [SeaCOM drivers](https://www.sealevel.com/support/category/driver-downloads-software/) as outlined in the [VR2C Users Manual](https://vemco.com/wp-content/uploads/2014/03/vr2c-manual.pdf), we can use the [`serial`](https://cran.r-project.org/web/packages/serial/serial.pdf) package in R to communicate with the VR2C.
+
+First, construct the serial interface connection using the com port number that is connected to the VR2C ("COM3" here) and a character string with the VR2C's configured baud rate (9600 here), parity ("n" for "none"), data bits (8) and stop bits (1). `translation` should be `cr`, `crlf`, or `auto`. Then open the connection.
+
+```{r}
+library(serial)
+
+vr2c_con <- serialConnection('vr2c_1', port = 'COM3',
+                             mode = '9600,n,8,1',
+                             buffering = 'line',
+                             newline = 1,
+                             handshake = 'none',
+                             translation = 'crlf')
+open(vr2c_con)
+```
+
+Wake up the receiver using any ASCII character, give the receiver time to wake up, and issue a command using the command strings outlined in the manual. Note that you need to start the command with an asterisk.
+
+```{r}
+write.serialConnection(vr2c_con, '')
+Sys.sleep(0.1)
+write.serialConnection(vr2c_con, '*450280.0#19,status')
+```
+
+Read the response.
+
+```{r}
+response <- NULL
+now <- Sys.time()
+
+while(Sys.time() < now + 1){
+  response <- c(response, read.serialConnection(vr2c_con))
+}
+
+response
+```
+
+If you get no response, try re-sending a ASCII character to wake it up. Start the receiver.
+```{r}
+write.serialConnection(vr2c_con, '*450280.0#19,rtmnow')
+Sys.sleep(0.1)
+read.serialConnection(vr2c_con)
+```
+
+Read in detections.
+```{r}
+write.serialConnection(vr2c_con, '')
+write.serialConnection(vr2c_con, '*450280.0#19,rtmnow')
+
+response <- NULL
+now <- Sys.time()
+
+while(Sys.time() < now + 1){
+  response <- c(response, read.serialConnection(vr2c_con))
+}
+
+response
+```
+
+
+Close the connection.
+
+```{r}
+close(vr2c_con)
+```
+
