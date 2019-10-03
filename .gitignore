@@ -13,6 +13,17 @@ $RECYCLE.BIN/
 # Private Data
 ACTtrans.rda
 *-oauth
+*.rda
+*.xls
+*.xlsx
+*.mp4
+*.csv
+*.doc
+*.docx
+# Images
+*.jpg
+*.png
+
 # =========================
 # Operating System Files
 # =========================
@@ -34,10 +45,7 @@ auth.json
 phantomjsdriver.log
 ASP.NET_SessionId=zbfa3gixldfeyouurykag51a; _ga=GA1.2.1636856434.1432836119
 
-*.rda
-*.xls
-*.xlsx
-*.mp4
 *.grd
 *.gri
-*.csv
+
+*.jpg
