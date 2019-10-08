@@ -43,8 +43,13 @@ Icon
 .Rhistory
 auth.json
 phantomjsdriver.log
-ASP.NET_SessionId=zbfa3gixldfeyouurykag51a; _ga=GA1.2.1636856434.1432836119
+*ASP.NET_SessionId=zbfa3gixldfeyouurykag51a; _ga=GA1.2.1636856434.1432836119
 
 *.grd
 *.gri
+
 *.gpkg
+=======
+
+*.jpg
+
