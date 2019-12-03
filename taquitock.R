@@ -51,7 +51,7 @@ library(rayshader)
 # Pull elevation data into memory as a raster object, then convert to matrix for
 # rayshader
 
-elev_data <- elev_data %>% 
+elev_data <- elev_data %>%
   as('Raster') %>%
   raster_to_matrix()
 
@@ -61,7 +61,6 @@ elev_data <- elev_data %>%
 elev_data %>%
   sphere_shade(colorintensity = 50, sunangle = 270) %>%
   plot_map()
-
 
 raymat <- ray_shade(elev_data,
                     sunangle = 73)
@@ -77,9 +76,47 @@ rgl::rgl.close()
 
 
 
+## Sun path over Taquitock ----
+# Following http://matthewkling.github.io/media/rayshader/
+library(insol)
+
+sun <- seq(ISOdate(2020, 05, 20, 0, tz = 'America/New_York'),
+          ISOdate(2020, 05, 20, 24, tz = 'America/New_York'), by = "min") %>%
+  JD() %>%
+  sunvector(37.527999, -77.384226, -4) %>%
+  sunpos() %>% 
+  as.data.frame() %>%
+  mutate(id = 1:nrow(.),
+         zenith = 90 - zenith) %>%
+  filter(zenith >= -6, # exclue nighttime
+         id %% 3 == 0) # keep every third frame
 
 
+library(magick)
 
+img <- image_graph(width = 500, height = 500)
+
+# generate hillshade image for each solar position
+for(i in 1:nrow(sun)){
+  azimuth <- sun$azimuth[i]
+  zenith <- sun$zenith[i]
+  
+  texture <- create_texture("red", "darkgreen",
+                            "khaki", "khaki", "khaki")
+  
+  elev_data %>%
+    sphere_shade(sunangle = azimuth, colorintensity = 50) %>% 
+    add_shadow(ambient_shade(elev_data)) %>%
+    add_shadow(ray_shade(elev_data,
+                         anglebreaks = seq(zenith - 4, zenith + 4, 1),
+                         sunangle = azimuth),
+               max_darken = 0.5) %>%
+    plot_map()
+}
+
+# save animation
+dev.off()
+img %>% image_animate(fps = 10) %>% image_write("animation.gif")
 
 
 
