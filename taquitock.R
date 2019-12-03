@@ -120,15 +120,14 @@ img %>% image_animate(fps = 10) %>% image_write("animation.gif")
 
 
 
-
-
-
-
+## Overlay image onto 3D elevation ----
+# This currently doesn't work.
 
 
 # Write proxy of JPEG2000 image
 pic <- read_stars('c:/users/secor/downloads/m_3707729_se_18_1_20160723_20160928.jp2',
                   proxy = T)
+
 
 # Convert property buffer to pic CRS and crop pic
 house <- house %>%
