@@ -23,6 +23,10 @@ ACTtrans.rda
 # Images
 *.jpg
 *.png
+*.gif
+*.img
+*.stl
+*.tif
 
 # =========================
 # Operating System Files
