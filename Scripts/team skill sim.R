@@ -1,4 +1,6 @@
 library(extraDistr)
+
+# Simulate team skill from truncated poisson distribution
 dat <- data.frame(
   team = rep(c('a', 'b'), each = 23),
   skill = c(rtpois(23, 9, b = 10), rtpois(23, 10, b = 10))
@@ -26,6 +28,8 @@ ggplot(data = dat)+
   #          position = position_dodge(preserve = 'single')) +
   geom_density(aes(x = skill, fill = NULL, color = team), size = 1) +
   scale_x_continuous(breaks = seq(0, 10, 1), limits = c(0, 10)) +
+  
+  # Referee quality needed based on median team skill
   geom_vline(xintercept = c(median(dat[dat$team == 'a',]$skill) - 0.5,
                             median(dat[dat$team == 'b',]$skill) + 0.5)) +
   labs(y = 'Number of players', x = 'Skill level', color = 'Team', fill = 'Team') +
