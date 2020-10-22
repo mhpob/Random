@@ -53,7 +53,6 @@ phantomjsdriver.log
 *.gri
 
 *.gpkg
+*.gdb
 =======
-
-*.jpg
-
+natural earth/

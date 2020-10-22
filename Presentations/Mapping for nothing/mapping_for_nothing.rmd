@@ -1,0 +1,675 @@
+---
+title:  Mapping for nothing and your plots for free
+subtitle: Using GIS in Dire Straits
+author: Mike O'Brien
+date: 2020-10-23
+output:
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_knit$set(root.dir = file.path('c:/users/darpa2/analysis/random/presentations',
+                                          'mapping for nothing'))
+```
+
+## Disclaimers {.build}
+- Focus is on data acquisition, rather than eye candy
+- Most of this is likely wrong
+- There are hundreds of ways to do this -- I'm focusing on using R (maybe a bit of SQL)
+  - Idea is to display a workflow and some of the tools available
+- Part of this was an exercise in using RMarkdown, so the slides are not perfect or exciting
+
+## What do you need to make a map? {.build}
+
+- Story
+  - What narrative are am I trying to convey?
+- Sense of scale
+  - Continental? Coast-wide? River? 10 x 10 section of marsh?
+- Context
+  - What do I need to show for the map to make sense?
+  
+<font size="7">WHY?</font>
+
+
+## What data are found in GIS? {.build}
+<div class="columns-2">
+Vector
+
+```{r, out.width='55%'}
+knitr::include_graphics('images/vector.png',  dpi = NULL)
+```
+
+>- Shapefiles
+>- Google Maps
+
+<br><br>
+
+Raster
+
+```{r, out.width='60%'}
+knitr::include_graphics('images/raster.png',  dpi = NULL)
+```
+
+>- Images
+>  - Google Earth (ish)
+>  - GeoTIFF
+</div>
+
+
+## What data are found in GIS? {.build}
+<div class="columns-2">
+<font size='6'>Vector</font>
+
+```{r, out.width='55%'}
+knitr::include_graphics('images/vector.png',  dpi = NULL)
+```
+
+<font size='6'>Raster</font>
+
+```{r, out.width='60%'}
+knitr::include_graphics('images/raster.png',  dpi = NULL)
+```
+
+
+<font size='6'>Tabular</font>
+```{r}
+head(cars)
+```
+- CSV
+- Excel (ish: XML)
+- Google Earth (ish: KML)
+
+</div>
+
+
+
+## What software handles these?
+```{r, out.height='15%'}
+knitr::include_graphics('images/arc.jpg',  dpi = NULL)
+```
+$800 - $4200 / yr ($1.5k - $14k perpetual)
+
+```{r, out.height='15%'}
+knitr::include_graphics('images/qgis.png',  dpi = NULL)
+```
+$0.00
+
+
+```{r, out.width='10%'}
+knitr::include_graphics('images/grass.png',  dpi = NULL)
+```
+$0.00
+
+```{r, out.height='15%'}
+knitr::include_graphics('images/manifold.png',  dpi = NULL)
+```
+$95 perpetual
+
+
+## What software handles these?
+<div class="columns-2">
+```{r, out.height='25%'}
+knitr::include_graphics('images/arc.jpg',  dpi = NULL)
+```
+$800 - $4200 / yr ($1.5k - $14k perpetual)
+
+```{r, out.height='25%'}
+knitr::include_graphics('images/qgis.png',  dpi = NULL)
+```
+$0.00
+
+```{r, out.width='20%'}
+knitr::include_graphics('images/grass.png',  dpi = NULL)
+```
+$0.00
+
+```{r, out.height='25%'}
+knitr::include_graphics('images/manifold.png',  dpi = NULL)
+```
+$95 perpetual
+
+<br>
+
+```{r, out.height='30%'}
+knitr::include_graphics('images/postgis.jpg',  dpi = NULL)
+```
+$0.00
+
+```{r, out.height='30%'}
+knitr::include_graphics('images/gdal.png',  dpi = NULL)
+```
+$0.00
+
+```{r, out.height='30%'}
+knitr::include_graphics('images/proj.png',  dpi = NULL)
+```
+$0.00
+
+
+```{r, out.height='30%'}
+knitr::include_graphics('images/geos.png',  dpi = NULL)
+```
+$0.00
+</div>
+
+
+
+## GIS software is just a way to access, manipulate, and visualize a database.
+
+Software  | Access  | Manipulate  | Visualize
+----------|---------|-------------|---------
+ArcGIS    | ☑      | ☑           | ☑
+QGIS      | ☑      | ☑           | ☑
+R         |         |             |
+
+
+## GIS software is just a way to access, manipulate, and visualize a database.
+
+Software  | Access  | Manipulate  | Visualize
+----------|---------|-------------|---------
+ArcGIS    | ☑      | ☑           | ☑
+QGIS      | ☑      | ☑           | ☑
+R         |         |             |
+...sf     | ☑      | ☑           | 
+...stars  | ☑      | ☑           | 
+...ggplot2|         |             | ☑
+...tmap   |       |                | ☑
+...cartography|   |               | ☑   
+...leaflet|        |               | ☑
+...mapview|      |                  | ☑
+
+# Have I lost you? Or can I suck you back in?
+```{r, fig.align='right'}
+knitr::include_graphics('images/boxy.gif',  dpi = NULL)
+```
+
+## What do you need to make a map? {.build}
+
+- Story
+  - What narrative are am I trying to convey?
+    - I heard striped bass at a bunch of different sites, and some of those sites have similar geography
+- Sense of scale
+  - Continental? Coast-wide? River? 10 x 10 section of marsh?
+    - Chesapeake Bay
+- Context
+  - What do I need to show for the map to make sense?
+    - Chesapeake Bay, sites where I heard the fish, something about the geography
+
+
+# Finding our X-Y map data
+## The first thing we want is site coordinates
+- Generally latitude (Y direction), longitude (X direction), and/or depth (Z direction)
+  - Note that these are all in different units!
+- Best saved in CSV format (most-versatile)
+  - Each row a site, columns of X, Y, Z, and/or other information
+  
+```{r, include=FALSE}
+library(dplyr)
+
+sites <- readRDS(file.path('c:/users/darpa2/analysis',
+                           'hud-sb-analysis/data and imports',
+                           'hud_detects.rds')) %>% 
+  filter(!is.na(long)) %>% 
+  distinct(station, .keep_all = T)
+```
+```{r}
+sites %>% 
+  select(station, lat, long, receiver, array) %>% 
+  head
+```
+
+However, a ubiquitous format is...
+  
+## Google Earth
+- KML (keyhole markup language)
+- What other "ML"s does this look like?
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Placemark>
+    <name>Simple placemark</name>
+    <description>Attached to the ground. Intelligently places itself 
+       at the height of the underlying terrain.</description>
+    <Point>
+      <coordinates>-122.0822035425683,37.42228990140251,0</coordinates>
+    </Point>
+  </Placemark>
+</kml>
+```
+
+## Google Earth pins
+```{r, out.width='50%', fig.align='left'}
+knitr::include_graphics('images/VPS_broad.png',  dpi = NULL)
+```
+```{r, fig.align='right'}
+knitr::include_graphics('images/VPS_tight.png',  dpi = NULL)
+```
+
+## Save folder as .kml (not .kmz, the default)
+```{r, fig.align='left'}
+knitr::include_graphics('images/VPS_saveas.png',  dpi = NULL)
+```
+```{r, fig.align='right'}
+knitr::include_graphics('images/VPS_kml.png',  dpi = NULL)
+```
+
+## Open with Excel
+```{r, fig.align='center'}
+knitr::include_graphics('images/VPS_excelall.png',  dpi = NULL)
+```
+
+## Open with Excel
+Coordinates are those with "coordinates" in the column name. This can be repeated a few times depending on the number of nested folders.
+```{r, fig.align='center'}
+knitr::include_graphics('images/VPS_excelopen.png',  dpi = NULL)
+```
+
+## QA/QC
+There are a lot of ways your data can become disjointed from reality between the field and your laptop.
+
+- No metadata
+- Positive longitude (western hemisphere is negative)
+- Conversion between units
+  - Computer programs use decimal degrees 
+  - Vessels use decimal minutes **(D + DM/60)**
+  - GPSs use decimal seconds **(D + DM/60 + DS/3600)**
+- Storage of different units
+  - Spaces, degree symbols, apostrophes, quotes don't play nicely
+  - (they convert everything to text)
+  
+## QA/QC: Quick, dirty, and interactive
+<font size='6'>{leaflet} / {mapview}</font>
+
+leaflet: "an open-source JavaScript library for mobile-friendly interactive maps"
+
+mapview: "It can also be considered a data-driven API for the leaflet package as it will automatically render correct map types, depending on the type of the data (points, lines, polygons, raster). In addition, it makes use of some advanced rendering functionality that will enable viewing of much larger data than is possible with leaflet. Furthermore, if you’re a fan of mapdeck (which you should!), you can choose to use it as the rendering platform instead of leaflet by setting mapviewOptions(platform = "mapdeck")."
+
+## QA/QC: Quick, dirty, and interactive
+
+```{r, echo=TRUE}
+library(mapview)
+mapview() +
+  mapview(sites,
+          xcol = 'long', ycol = 'lat', zcol = 'array')
+```
+
+
+# Now, to add the context
+## In our field, the first thing we want to find is a coastline. {.build}
+Are coastlines vector, raster, or tabular?
+
+Today, I'm only going to deal with vector and tabular data (forcing it into a vector format).
+
+Search terms:
+
+  - shapefile "location"
+  - layer "location"
+  - coast "location"
+  - state-based GIS orgs
+  
+Easy start: [Natural Earth](https://www.naturalearthdata.com/)
+
+## Natural Earth
+You can pick a coastline (just a line) or land polygons (filled-in shapes).
+
+Which do you pick for the appropriate scale of the Chesapeake Bay?
+
+```{r, out.width='60%'}
+knitr::include_graphics('images/natural earth.png',  dpi = NULL)
+```
+
+## Natural Earth
+...what's in a shapefile?
+
+```{r, out.width='100%'}
+knitr::include_graphics('images/ne coastline.png',  dpi = NULL)
+```
+
+
+
+# So we've got the data. Now what?
+## R: sf
+"Simple features": https://r-spatial.github.io/sf/
+
+Basically appends 1) metadata and 2) vector geometry to a data table.
+
+Nearly all functions start with `st` (not "sf"), which comes from PostGIS and stands for "Spatial Type", but originally "Spatial and Temporal". This is an ISO naming convention for SQL.
+```{r, echo=TRUE}
+library(sf)
+world <- st_read('natural earth/ne_10m_land.shp')
+```
+
+---
+
+Notice the shapes defined in "Well-Known Text"
+```{r}
+world
+```
+
+---
+
+```{r, echo=TRUE}
+library(ggplot2)
+ggplot(data = world) +
+  geom_sf()
+```
+
+## Scale/context?
+```{r, echo=TRUE}
+ggplot(data = world) +
+  geom_sf() +
+  annotate('rect', xmin = -77.75, ymin = 36.5, xmax = -75.3, ymax = 39.85,
+           color = 'red', size = 3)
+```
+
+## ggplot2::coord_sf
+```{r, echo=TRUE}
+ggplot(data = world) +
+  geom_sf() +
+  ### <b>
+  coord_sf(xlim = c(-77.5, -75), ylim = c(36.5, 39.85))
+  ### </b>
+```
+
+# Add sites the cheating way
+## geom_point()
+```{r, echo=TRUE}
+ggplot() +
+  geom_sf(data = world) +
+  coord_sf(xlim = c(-77.5, -75), ylim = c(36.5, 39.85)) +
+  ### <b>
+  geom_point(data = sites, aes(x = long, y = lat))
+  ### </b>
+```
+
+
+
+# Add sites the (more) correct way
+## Convert tabular data to vector data.
+
+```{r, echo=TRUE}
+names(sites)[12:22]
+```
+```{r echo=TRUE}
+sites <- sites %>% 
+  st_as_sf(coords = c('long', 'lat'))
+
+names(sites)[12:22]
+```
+
+# Why? Coordinate reference systems.
+## Coordinate reference systems
+
+```{r, echo=TRUE}
+st_crs(world)
+```
+
+## Coordinate reference systems
+```{r, echo=TRUE}
+st_crs(sites)
+```
+
+## Coordinate reference systems
+```{r, fig.align='center'}
+knitr::include_graphics('images/projection.gif',  dpi = NULL)
+```
+```{r, fig.align='center'}
+knitr::include_graphics('images/usa_crs.jpg',  dpi = NULL)
+```
+
+## Coordinate reference systems
+https://mathigon.org/course/circles/spheres-cones-cylinders#sphere-maps
+
+## Coordinate reference systems {.build}
+Early in the morning of July 1, 1992...
+
+...the Earth moved under Leonardtown, MD.
+
+```{r, fig.align='center', fig.cap='http://www.mgs.md.gov/geology/maryland_coordinate_system.html', out.width='75%'}
+knitr::include_graphics('images/leonardtown_shift.png',  dpi = NULL)
+```
+
+## Coordinate reference systems
+```{r, fig.align='center'}
+knitr::include_graphics('images/md_code.png',  dpi = NULL)
+```
+
+## Coordinate reference systems
+```{r, fig.align='center'}
+knitr::include_graphics('images/balti_code.png',  dpi = NULL)
+```
+
+## Coordinate reference systems
+```{r, echo=TRUE}
+# WGS84
+st_crs(sites) <- 4326
+
+print(world, n = 0)
+print(sites, n = 0)
+```
+
+# Add sites the (more) correct way
+## Spatially-referenced points
+```{r, echo=TRUE}
+ggplot() +
+  geom_sf(data = world) +
+  ### <b>
+  geom_sf(data = sites) +
+  ### </b>
+  coord_sf(xlim = c(-77.5, -75), ylim = c(36.5, 39.85))
+```
+
+## Spatially-referenced points
+
+```{r, echo=TRUE}
+mapview() +
+  mapview(sites, zcol = 'array')
+```
+
+
+## Gussy it up a bit
+```{r, echo=TRUE, out.height='15%'}
+ggplot() +
+  geom_sf(data = world, fill = 'lightgreen', color = 'darkgreen') +
+  geom_sf(data = sites, aes(color = array), size = 2) +
+  ggspatial::annotation_north_arrow(aes(location = 'tl')) +
+  ggspatial::annotation_scale() +
+  coord_sf(xlim = c(-77.5, -75), ylim = c(36.5, 39.85)) +
+  labs(color = 'Array') +
+  theme_minimal() +
+  theme(axis.text.y = element_text(angle = 45))
+```
+
+
+# ALERT!!
+## Some issues: {.build}
+
+- We've already talked about reference systems (maybe *too much*)
+- This dataset is only accurate to 10 meters
+  - finter scales can be **BIG**
+- The map we just created often contains everything that was cropped out *within the file*.
+  - This can create big files and issues when post-processing in Illustrator, un-grouped PPT, etc.
+
+---
+
+```{r, echo=TRUE}
+ggplot() +
+  geom_sf(data = world) +
+  geom_sf(data = sites, aes(color = array), size = 2) +
+  ### <b>
+  coord_sf(xlim = c(-77.5, -75), ylim = c(36.5, 39.85), clip = 'off') +
+  ### </b>
+  labs(color = 'Array') +
+  theme_minimal() +
+  theme(axis.text.y = element_text(angle = 45))
+```
+
+# How do I find out more?
+## Twitter
+
+Tim Salabim (mapview)   https://twitter.com/TimSalabim3
+
+Edzer Pebesma (sf)      https://twitter.com/edzerpebesma
+
+Robin Lovelace          https://twitter.com/robinlovelace
+
+Jakub Nowosad           https://twitter.com/jakub_nowosad
+
+Michael Sumner          https://twitter.com/mdsumner
+
+## "Texts"
+Geocomputation with R
+https://bookdown.org/robinlovelace/geocompr/intro.html
+
+Simple features website   https://r-spatial.github.io/sf/
+
+ggplot2 website           https://ggplot2.tidyverse.org/index.html
+
+mapview website           https://r-spatial.github.io/mapview/
+
+## Misc
+[National Hydrology Datasets](https://viewer.nationalmap.gov/basic/?basemap=b1&category=nhd&title=NHD%20View)
+
+[USGS NHD code guide](https://nhd.usgs.gov/userGuide/Robohelpfiles/NHD_User_Guide/Feature_Catalog/Hydrography_Dataset/Complete_FCode_List.htm) (useful for subsetting/understanding USGS GIS data)
+
+[EPSG website](https://epsg.org/home.html)
+
+[OGR SQL dialect](https://gdal.org/user/ogr_sql_dialect.html)
+
+# Time check
+```{r, echo=FALSE, out.width='50%', fig.align='right'}
+knitr::include_graphics('images/yoyos.gif',  dpi = NULL)
+```
+
+# Big files
+```{r, echo=FALSE, out.width='50%', fig.align='right'}
+knitr::include_graphics('images/neon.gif',  dpi = NULL)
+```
+
+## National Hydrology Dataset
+```{r, fig.align='center'}
+knitr::include_graphics('images/nhd screenshot.png',  dpi = NULL)
+```
+
+
+## Cropping?
+```{r, echo=TRUE}
+system.time(
+  shape <- st_read('nhd_h_0208_hu4_gdb.gdb', layer = 'NHDFlowline', quiet = T)
+)
+```
+
+
+## Cropping??
+```{r, out.width='40%'}
+system.time(
+  plot(st_geometry(st_zm(shape)))
+)
+```
+
+## Cropping.
+`sf::st_read` has `query` and `wkt_filter` arguments, which use OGR SQL or well-known text to filter data before reading it into memory.
+
+```{r}
+names(shape)
+```
+
+## SQL Cropping.
+
+```{r, fig.align='center', out.height='75%'}
+knitr::include_graphics('images/sql.jpg',  dpi = NULL)
+```
+
+## SQL Cropping.
+
+```{r, echo=TRUE}
+system.time(
+  shape_subs <- st_read('nhd_h_0208_hu4_gdb.gdb', layer = 'nhdflowline', quiet = T,
+                   query = "SELECT FType, GNIS_Name
+                              FROM nhdflowline
+                              WHERE GNIS_Name
+                                    LIKE 'York%'")
+)
+
+head(shape_subs)
+```
+
+## SQL Cropping.
+```{r, out.width='40%'}
+system.time(
+  plot(st_geometry(st_zm(shape_subs)))
+)
+```
+
+
+## Well-known text cropping.
+```{r, echo=TRUE}
+crop_wkt <- st_bbox(c(ymin = 37.17, xmin = -76.84,
+                      ymax = 37.5, xmax = -76.49),
+                    crs = st_crs(4326)) %>%
+  st_as_sfc() %>%
+  st_transform(st_crs(shape)) %>% 
+  st_as_text()
+
+crop_wkt
+```
+## Well-known text cropping.
+
+```{r, echo=TRUE}
+system.time(
+  shape_subs <- st_read('nhd_h_0208_hu4_gdb.gdb', layer = 'nhdflowline',
+                   wkt_filter = crop_wkt, quiet = T)
+)
+
+head(shape_subs)
+```
+
+## Well-known text cropping.
+```{r}
+plot(st_geometry(st_zm(shape_subs)))
+```
+
+
+# COMBO!
+```{r, fig.align='right', out.height='75%'}
+knitr::include_graphics('images/tvs.gif',  dpi = NULL)
+```
+
+## OGR, SQL, WKT, OMG!
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+nan_watershed <- st_read('nhd_h_0208_hu4_gdb.gdb',
+               layer = 'wbdhu10',
+               query = "SELECT OGR_GEOM_WKT AS wkt
+                        FROM wbdhu10
+                        WHERE States LIKE 'D%'", quiet = T)
+```
+```{r}
+plot(st_geometry(st_zm(shape)))
+plot(st_geometry(nan_watershed), add = T, col = 'red')
+```
+
+##  OGR, SQL, WKT, OMG!
+```{r}
+nan_watershed
+```
+
+
+##  OGR, SQL, WKT, OMG!
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+nan_river <- st_read('nhd_h_0208_hu4_gdb.gdb',
+               layer = 'nhdarea',
+               wkt_filter = nan_watershed$wkt, quiet = T)
+```
+
+##  OGR, SQL, WKT, OMG!
+```{r}
+plot(st_geometry(nan_watershed))
+plot(st_geometry(nan_river), add = T, col = 'red')
+```
+
+# FIN.
