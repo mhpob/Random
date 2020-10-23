@@ -21,13 +21,21 @@ knitr::opts_knit$set(root.dir = file.path('c:/users/darpa2/analysis/random/prese
 - Most of this is likely wrong
 - There are hundreds of ways to do this -- I'm focusing on using R (maybe a bit of SQL)
   - Idea is to display a workflow and some of the tools available
-- Part of this was an exercise in using RMarkdown, so the slides are not perfect or exciting
+- Part of this was a personal exercise in using RMarkdown, so the slides are not perfect or exciting (but you get to see the code for all of it!)
 
-## What do you need to make a map? {.build}
+## Maps are models
+```{r, fig.align='left'}
+knitr::include_graphics('images/earth_funnel.jpg', dpi = NULL)
+```
+```{r, fig.align='right'}
+knitr::include_graphics('images/boxy.gif', dpi = NULL)
+```
+
+## What do you need to make a ~~model~~ map? {.build}
 
 - Story
   - What narrative are am I trying to convey?
-- Sense of scale
+- Sense of inference/scale
   - Continental? Coast-wide? River? 10 x 10 section of marsh?
 - Context
   - What do I need to show for the map to make sense?
@@ -182,10 +190,16 @@ R         |         |             |
 ...leaflet|        |               | ☑
 ...mapview|      |                  | ☑
 
-# Have I lost you? Or can I suck you back in?
-```{r, fig.align='right'}
-knitr::include_graphics('images/boxy.gif',  dpi = NULL)
+## GIS software is just a way to access, manipulate, and visualize a database.
+```{r, out.height='90%'}
+knitr::include_graphics('images/sf_deps.png',  dpi = NULL)
 ```
+
+## GIS software is just a way to access, manipulate, and visualize a database.
+```{r, out.height='90%'}
+knitr::include_graphics('images/sf_deps_s2.png',  dpi = NULL)
+```
+
 
 ## What do you need to make a map? {.build}
 
