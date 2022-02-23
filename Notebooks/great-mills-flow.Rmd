@@ -1,0 +1,69 @@
+---
+title: "Great Mills flow"
+date: '2022-02-23'
+output: html_notebook
+---
+
+```{r}
+library(data.table)
+```
+
+I wish to evaluate whether peak flows (top 10% for the series 1990-present) at Great Mills have tended to occur in the most recent decade. 
+
+  - Filtering for top 10% of flows
+  - looking at frequency of peak flows for decades 1990-1999, 2000-2009, and 2010-present
+  
+```{r}
+flow <- fread('https://nwis.waterdata.usgs.gov/nwis/uv?cb_00060=on&cb_00065=on&format=rdb&site_no=01661500&period=&begin_date=1990-10-01&end_date=2022-02-23')
+setnames(flow, as.character(flow[1,]))
+
+flow <- flow[-(1:2)]
+flow[, names(flow) := lapply(.SD, type.convert, as.is = T)]
+flow[, datetime := as.POSIXct(datetime, format = '%y-%m-%d %H:%M', tz = 'America/New_York')]
+
+setnames(flow, c('70079_00060', '70079_00060_cd', '70080_00065', '70080_00065_cd'),
+         c('disch', 'disch_cd', 'gage', 'gage_cd'))
+
+flow[, disch := as.numeric(disch)]
+flow <- flow[!is.na(disch)]
+```
+  
+```{r}
+top_flow <- flow[disch >= quantile(disch, 0.9, na.rm = T)]
+```
+  
+```{r}
+top_flow[, decade := lubridate::floor_date(datetime, '10 year')]
+```
+
+```{r}
+xtabs(~decade, data = top_flow)
+```
+
+```{r}
+ggplot(data = flow, aes(x = decade)) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5)
+```
+
+```{r}
+ggplot(data = top_flow, aes(x = decade)) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5)
+```
+
+
+
+```{r}
+top_flow[, day := lubridate::floor_date(datetime, 'day')]
+
+unique(top_flow, by = 'day')[, .(days_pk = .N), by = 'decade']
+```
+
+```{r}
+ggplot(data = unique(top_flow, by = 'day')[, .(days_pk = .N), by = 'decade']) +
+  geom_col(aes(x = decade, y = days_pk)) +
+  geom_text(aes(x = decade, y= days_pk, label = days_pk), vjust = -0.5)
+```
+
+
